@@ -107,7 +107,7 @@ policy.p.hyp = repmat(log([0.7 * ones(1, size(poli,2)) 1 0.01]'), 1,6);  % initi
 % 5. Set up the cost structure
 cost.fcn = @loss_kssu;                            % handle to cost function
 cost.gamma = 1;                                   % discount factor
-cost.p = [0.3];                                   % lenghts of the links
+cost.p = [0.1 0.3];                               % lenghts of the links and length of pendulum
 cost.width = 0.5;                                 % cost function width
 cost.expl = 0;                                    % exploration parameter
 cost.angle = plant.angi;                          % angle variables in cost

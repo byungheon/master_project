@@ -57,10 +57,10 @@ Mds = zeros(D1,D0*D0); Sds = kron(Mdm,Mdm);
 target = [cost.target(:); gTrig(cost.target(:), 0*s, cost.angle)];
 
 ell1 = cost.p(1);
-ell2 = 0.3;
+ell2 = cost.p(1);
 Q = zeros(D1); 
-Q(1:6,1:6) = diag(ell2^2 * ones(1,6));
-Q((D+1):(D+2),(D+1):(D+2)) = diag(ell1^2 * ones(1,2));
+Q(1:6,1:6) = diag(ell1^2 * ones(1,6));
+Q((D+1):(D+2),(D+1):(D+2)) = diag(ell2^2 * ones(1,2));
 
 % 3. Trigonometric augmentation
 i = 1:D0; k = D0+1:D1;
