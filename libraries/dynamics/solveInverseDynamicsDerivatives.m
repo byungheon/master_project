@@ -75,28 +75,28 @@ function [dtau, varargout] = solveInverseDynamicsDerivatives(A,M,q,qdot,G,V,Vdot
         end
     end
 
-%     %% Backward Recursion
-%     for i = n:-1:1
-%         if i == n
-%             for p = 1:m
-%                 for k = 1:n
-%                     dF(:,i,p,k) = G(:,:,i)*dVdot(:,i,p,k) - small_ad(dV(:,i,p,k))'*G(:,:,i)*V(:,i) - small_ad(V(:,i))'*G(:,:,i)*dV(:,i,p,k);                
-%                 end
-%             end
-%         else
-%             for p = 1:m
-%                 for k = 1:n
-%                     dF(:,i,p,k) = Ad_T(:,:,i+1)'* dF(:,i+1,p,k) - Ad_T(:,:,i+1)'*small_ad(A(:,i+1))'*F(:,i+1)*dq(i+1,p,k) + G(:,:,i)*dVdot(:,i,p,k) ...
-%                                 - small_ad(dV(:,i,p,k))'*G(:,:,i)*V(:,i) - small_ad(V(:,i))'*G(:,:,i)*dV(:,i,p,k);                
-%                 end
-%             end
-%         end
-%         for p = 1:m
-%             for k = 1:n
-%                 dtau(i,p,k) = A(:,i)'*dF(:,i,p,k);
-%             end
-%         end
-%     end
+    %% Backward Recursion
+    for i = n:-1:1
+        if i == n
+            for p = 1:m
+                for k = 1:n
+                    dF(:,i,p,k) = G(:,:,i)*dVdot(:,i,p,k) - small_ad(dV(:,i,p,k))'*G(:,:,i)*V(:,i) - small_ad(V(:,i))'*G(:,:,i)*dV(:,i,p,k);                
+                end
+            end
+        else
+            for p = 1:m
+                for k = 1:n
+                    dF(:,i,p,k) = Ad_T(:,:,i+1)'* dF(:,i+1,p,k) - Ad_T(:,:,i+1)'*small_ad(A(:,i+1))'*F(:,i+1)*dq(i+1,p,k) + G(:,:,i)*dVdot(:,i,p,k) ...
+                                - small_ad(dV(:,i,p,k))'*G(:,:,i)*V(:,i) - small_ad(V(:,i))'*G(:,:,i)*dV(:,i,p,k);                
+                end
+            end
+        end
+        for p = 1:m
+            for k = 1:n
+                dtau(i,p,k) = A(:,i)'*dF(:,i,p,k);
+            end
+        end
+    end
 
     if nargout > 1
         varargout{1} = dV;

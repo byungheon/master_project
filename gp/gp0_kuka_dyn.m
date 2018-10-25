@@ -1,9 +1,9 @@
-%% gp0_kuka.m
+%% gp0_kuka_dyn.m
 % *Summary:* Compute joint predictions for multiple GPs with uncertain inputs.
 % If gpmodel.nigp exists, individial noise contributions are added.
 % Predictive variances contain uncertainty about the function, but no noise.
 %
-%   function [M, S, V] = gp0(gpmodel, m, s)
+%   function [M, S, V] = gp0_kuka_PIREM(gpmodel, m, s)
 %
 % *Input arguments:*
 %
@@ -33,9 +33,9 @@
 % # Compute predictive covariance matrix, non-central moments
 % # Centralize moments
 
-function [M, S, V] = gp0_kuka(gpmodel, m, s)
+function [M, S, V] = gp0_kuka_dyn(gpmodel, m, s)
 %% Code
-
+%% GP
 persistent K iK beta oldX oldn;
 [n, D] = size(gpmodel.inputs);    % number of examples and dimension of inputs
 [n, E] = size(gpmodel.targets);     % number of examples and number of outputs
@@ -100,4 +100,54 @@ for i=1:E
 end
 
 % 4) centralize moments
-S = S - M*M';                                              
+S = S - M*M';
+
+%% Robot Dynamics
+persistent dynamics OPTIONS ctrlfcn u0 par;
+if isempty(dynamics)
+    dynamics    = @dynamics_kuka_6dof;
+    OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
+    ctrlfcn     = str2func('zoh');
+    u0          = cell(1,6);
+    par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
+end
+
+q       = m(1:6);
+qdot    = m(7:12);
+tau     = m(end-6+1:end);
+
+for j = 1:6, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
+[~, y] = ode45(dynamics, [0 gpmodel.stepsize/2 gpmodel.stepsize], m(1:12), OPTIONS, u0{:});
+
+% qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+
+qddot = (y(3,7:12)' - qdot)/gpmodel.stepsize;
+[dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F,gpmodel.robot.Sigmoid);
+
+M(1:6)  = M(1:6) + (y(3,1:6)' - q);
+M(7:12) = M(7:12) + (y(3,7:12)' - qdot);
+
+A                   = zeros(E,D);
+A(1:6,7:12)         = eye(6,6) * gpmodel.stepsize;
+A(7:12,1:6)         = dqddotdq * gpmodel.stepsize;
+A(7:12,7:12)        = dqddotdqdot * gpmodel.stepsize;
+A(7:12,end-5:end)   = dqddotdtau * gpmodel.stepsize;
+
+V = V + A';
+
+S = S + A * s * V;
+end
+function u = zoh(f, t, par) % **************************** zero-order hold
+d = par.delay;
+if d==0
+                  u = f;
+else
+  e = d/100; t0=t-(d-e/2);
+  if t<d-e/2,     u=f(1);
+  elseif t<d+e/2, u=(1-t0/e)*f(1) + t0/e*f(2);    % prevents ODE stiffness
+  else            u=f(2);
+  end
+end
+end
+
+

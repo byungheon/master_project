@@ -19,14 +19,30 @@ xaug = [x(:,dyno) x(:,end-Du-2*Da+1:end-Du)];     % x augmented with angles
 dynmodel.inputs = [xaug(:,dyni) x(:,end-Du+1:end)];     % use dyni and ctrl
 dynmodel.targets = y(:,dyno);
 dynmodel.targets(:,difi) = dynmodel.targets(:,difi) - x(:,dyno(difi));
-out_list = [];
-for i = 1:size(dynmodel.targets,1)
-   if ~(abs(dynmodel.targets(i,1:6)) < pi)
-       out_list = [out_list i];
+
+in_list = [];
+for i = 1:size(dynmodel.targets,1)-1
+   tmpsign = sign(dynmodel.targets(i,1:6)).*sign((dynmodel.inputs(i,7:12)+dynmodel.inputs(i+1,7:12))/2);
+   tmpmag  = abs(dynmodel.targets(i,1:6)/dt)./ abs((dynmodel.inputs(i,7:12)+dynmodel.inputs(i+1,7:12))/2);
+   tmp = tmpsign.*(tmpmag <2.0).*(tmpmag>0.5);
+   if  tmp>0
+       disp('----------------------');
+       disp(dynmodel.targets(i,1:6)/dt);
+       disp((dynmodel.inputs(i,7:12)+dynmodel.inputs(i+1,7:12))/2);
+       in_list = [in_list i];
    end
 end
-dynmodel.inputs(out_list,:) = [];
-dynmodel.targets(out_list,:) = [];
+disp(['Obtained Dynamics Data: ' num2str(length(in_list)) '/' num2str(size(dynmodel.targets,1))]);
+dynmodel.inputs     = dynmodel.inputs(in_list,:);
+dynmodel.targets    = dynmodel.targets(in_list,:);
+if (isfield(dynmodel,'model') && ~strcmp(dynmodel.model,'PILCO'))
+    delta           = zeros(size(dynmodel.targets));
+    delta(:,1:6)    = dynmodel.inputs(:,7:12) * dt;
+    for i = 1:size(dynmodel.inputs,1)
+        delta(i,7:12) = dt * solveForwardDynamics(dynmodel.robot.A,dynmodel.robot.M,dynmodel.inputs(i,1:6)',dynmodel.inputs(i,7:12)',dynmodel.inputs(i,end-Du+1:end)',dynmodel.robot.G, dynmodel.Vdot0, dynmodel.robot.F, dynmodel.robot.Sigmoid);
+    end
+    dynmodel.targets = dynmodel.targets - delta;
+end
 dynmodel = dynmodel.train(dynmodel, plant, trainOpt);  %  train dynamics GP
 
 % display some hyperparameters

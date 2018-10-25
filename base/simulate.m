@@ -37,7 +37,8 @@ function next = simulate(x0, f, plant)
 %% Code
 
 
-OPTIONS = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);    % accuracy of ode45
+% OPTIONS = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);    % accuracy of ode45
+OPTIONS = odeset('RelTol', 1e-7, 'AbsTol', 1e-7);    % accuracy of ode45
 
 x0 = x0(:); f = f(:); nU = length(f);
 dt = plant.dt; dynamics = plant.dynamics;

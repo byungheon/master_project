@@ -48,7 +48,7 @@
 
 
 
-function [x y L latent] = rollout(start, policy, H, plant, cost)
+function [x y L latent] = rollout(start, policy, H, plant, cost, dyn)
 %% Code
 
 if isfield(plant,'augment'), augi = plant.augi;             % sort out indices!
@@ -66,6 +66,7 @@ x(1,augi) = plant.augment(x(1,:));
 u = zeros(H, nU); latent = zeros(H+1, size(state,2)+nU);
 y = zeros(H, nX); L = zeros(1, H); next = zeros(1,length(simi));
 x_wrap = zeros(H+1, nX);
+Vdot_0_control = [0;0;0;0;0;9.82];
 for i = 1:H % --------------------------------------------- generate trajectory
   s = x(i,dyno)'; sa = gTrig(s, zeros(length(s)), angi); s = [s; sa];
   x(i,end-2*nA+1:end) = s(end-2*nA+1:end);
@@ -79,7 +80,14 @@ for i = 1:H % --------------------------------------------- generate trajectory
   latent(i,:) = [state u(i,:)];                                  % latent state
 
   % 2. Simulate dynamics -------------------------------------------------------
-  next(odei) = simulate(state(odei), u(i,:), plant);
+  if nargin == 6 
+    gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, s(1:6), zeros(6,1), zeros(6,1), dyn.robot.G, Vdot_0_control)';
+  else
+    gravity_control = zeros(1,length(policy.maxU));
+  end
+  next(odei) = simulate(state(odei), u(i,:)+gravity_control, plant);
+%   next(odei) = simulate(state(odei), u(i,:), plant);
+
   next(subi) = plant.subplant(state, u(i,:));
   
   % 3. Stop rollout if constraints violated ------------------------------------

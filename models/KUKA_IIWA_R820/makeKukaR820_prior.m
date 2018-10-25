@@ -1,4 +1,4 @@
-function robot = makeKukaR820()
+function robot = makeKukaR820_prior()
        
     % degrees of freedom
     robot.dof = 6;
@@ -63,8 +63,9 @@ function robot = makeKukaR820()
     for i = 1:robot.dof
         robot.G(:,:,i) = convertInertiaPhiToG(robot.Phi(10*(i-1)+1:10*i));
     end
-    
-%     robot.pd_metric_Phi = zeros(10*robot.dof, 10*robot.dof);
+    robot.F = [0.335546 0.181378;0.161421 0.355506;0.083204 0.144099; 0.206558 0.070046; 0.085193 0.040282; 0.101937 0.136860];%     robot.pd_metric_Phi = zeros(10*robot.dof, 10*robot.dof);
+    robot.F(1:6,1) = zeros(6,1);
+    robot.Sigmoid = 100 * ones(robot.dof,1);
 %     for i = 1:robot.dof
 %         robot.pd_metric_Phi(10*(i-1)+1:10*i, 10*(i-1)+1:10*i) = getPDMetricInertiaPhi(robot.Phi(10*(i-1)+1:10*i));
 %     end

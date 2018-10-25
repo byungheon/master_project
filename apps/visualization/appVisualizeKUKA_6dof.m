@@ -6,11 +6,10 @@
 %  trajectory   robot trajectory to visualize    7*num_time
 
 %% Implementation
-function appVisualizeKUKA(varargin)
+function appVisualizeKUKA_6dof(varargin)
     %% Robot Init
-    robot = makeKukaR820();
-    dt_standard = 0.1;
-    dt = dt_standard;
+    robot = makeKukaR820_prior();
+
     n = robot.dof;
     q = zeros(n,1);
     T = zeros(4,4,n);
@@ -31,17 +30,10 @@ function appVisualizeKUKA(varargin)
         cost = varargin{2};
         text1 = varargin{3};
         text2 = varargin{4};
-        dt    = varargin{5};
     else
         bPilco = false;
     end
-    if dt_standard/dt < 1
-        ratio = 1;
-    else
-        ratio = dt_standard/dt;
-    end
-    list = 1:ratio:size(trajectory,2);
-    trajectory = trajectory(:,list);
+    
     num_time = size(trajectory, 2);
     
     %% STL Load
@@ -51,21 +43,21 @@ function appVisualizeKUKA(varargin)
     for i = 1:n+1
         fv_zero{i} = stlread(['link_' num2str(i) '.STL']);
     end
-    T_temp = [-1 0 0 0.04428;
-              0 -1 0 -0.122;
-              0 0 -1 0.3678 + 0.125;
-              0 0 0 1];
-    TempVectices = ones(4,size(fv_zero{n+1}.vertices,1));
-    TempVectices(1:3,:) = fv_zero{n+1}.vertices';
-    TempVectices2 = inverse_SE3(T_temp) * TempVectices;
-%     TempVectices2(3,:) =  TempVectices2(3,:) + 0.9450 * ones(1,size(TempVectices2,2));
-    fv_zero{n+1}.vertices = TempVectices2(1:3,:)';
+%     T_temp = [-1 0 0 0.04428;
+%               0 -1 0 -0.122;
+%               0 0 -1 0.3678 + 0.125;
+%               0 0 0 1];
+%     TempVectices = ones(4,size(fv_zero{n+1}.vertices,1));
+%     TempVectices(1:3,:) = fv_zero{n+1}.vertices';
+%     TempVectices2 = inverse_SE3(T_temp) * TempVectices;
+% %     TempVectices2(3,:) =  TempVectices2(3,:) + 0.9450 * ones(1,size(TempVectices2,2));
+%     fv_zero{n+1}.vertices = TempVectices2(1:3,:)';
     
     fv = fv_zero;
     j = 1;
     for i = 1:n
         fv{j}.vertices = (T(1:3,1:3,i)*fv{j}.vertices' + T(1:3,4,i)*ones(1,size(fv{j}.vertices,1)))';
-        if i == n-1
+        if i == n
             j = j + 1;
             T_temp = T(:,:,i) * [1  0  0  0
                       0  0  1  0
@@ -104,9 +96,8 @@ function appVisualizeKUKA(varargin)
     color = ones(n+1,3)*0.8;
     color(2,:) = [246 120 40]/255;
     color(6,:) = [246 120 40]/255;
-    color(8,:) = ones(1,3)*0.2;
 
-    for i = 1:8
+    for i = 1:7
         render_part{i} = patch(fv{i},'FaceColor',  color(i,:), ...
                  'EdgeColor',       'none',        ...
                  'FaceLighting',    'gouraud',     ...
@@ -116,7 +107,7 @@ function appVisualizeKUKA(varargin)
     % draw end-effector
     end_effector_M = eye(4);
     end_effector_M(3,4) = 0.125;
-    end_effector_T = T(:,:,7) * end_effector_M;
+    end_effector_T = T(:,:,n) * end_effector_M;
     end_effector = plot_SE3(end_effector_T);
 
     % Add a camera light, and tone down the specular highlighting
@@ -137,7 +128,7 @@ function appVisualizeKUKA(varargin)
                 T(:,:,i) = T0;
                 fv{j}.vertices = (T(1:3,1:3,i)*fv_zero{j}.vertices' + T(1:3,4,i)*ones(1,size(fv_zero{j}.vertices,1)))';
                 set(render_part{j}, 'Vertices', fv{j}.vertices);
-                if i == n-1
+                if i == n
                     j = j+1;
                     T_temp = T(:,:,i) * [1  0  0  0
                       0  0  1  0
@@ -149,7 +140,7 @@ function appVisualizeKUKA(varargin)
                 j = j+1;
             end
 
-            end_effector_T = T(:,:,7) * end_effector_M;
+            end_effector_T = T(:,:,n) * end_effector_M;
             plot_SE3(end_effector_T, end_effector);
             
             getframe;

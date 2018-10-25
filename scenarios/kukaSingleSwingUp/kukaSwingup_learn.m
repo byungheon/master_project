@@ -21,16 +21,24 @@ settings_kssu;                 % load scenario-specific settings
 basename = 'KukaSingleSwingUp_'; % filename used for saving data
 
 % 2. Initial J random rollouts
-for jj = 1:J                                        
+for jj = 1:J
   [xx, yy, realCost{jj}, latent{jj}] = ...
-    rollout(gaussian(mu0, S0), struct('maxU',policy.maxU), H, plant, cost);
+    rollout(gaussian(mu0, S0), struct('maxU',policy.maxU), H, plant, cost, dynmodel);
   x = [x; xx]; y = [y; yy];       % augment training sets for dynamics model
   if plotting.verbosity > 0;      % visualization of trajectory
     if ~ishandle(1); figure(1); else set(0,'CurrentFigure',1); end; clf(1);
     draw_rollout_kssu; 
-  end 
-                   
+  end
 end
+% writetable(array2table(x), 'x.txt','Delimiter',',');
+% writetable(array2table(y), 'y.txt','Delimiter',',');
+% writetable(array2table(realCost{jj}), 'realCost.txt','Delimiter',',');
+% writetable(array2table(latent{jj}), 'latent.txt','Delimiter',',');
+% x = dlmread('x.txt');
+% y = dlmread('y.txt');
+% realCost{1} = dlmread('realCost.txt');
+% latent{1} = dlmread('latent.txt');
+% jj = 1;
 
 mu0Sim(odei,:) = mu0; S0Sim(odei,odei) = S0;
 mu0Sim = mu0Sim(dyno); S0Sim = S0Sim(dyno,dyno);
@@ -39,7 +47,7 @@ mu0Sim = mu0Sim(dyno); S0Sim = S0Sim(dyno,dyno);
 for j = 1:N
   tic
   trainDynModel;   % train (GP) dynamics model
-  learnPolicy;     % learn policy 
+  learnPolicy;     % learn policy
   applyController; % apply controller to system
   disp(['controlled trial # ' num2str(j)]);
   if plotting.verbosity > 0;      % visualization of trajectory

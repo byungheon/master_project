@@ -2,15 +2,16 @@
 % 2018 Bryan Dongik Lee
 
 %% Inputs
-% [Name]       [Description]                      [Size]
-%  A            i-th body screws from i-th frame   6*n
-%  M            initial relative frames M_{i,i-1}  4*4*n
-%  q            joint angles                       n*1
-%  qdot         joint vleocities                   n*1
-%  tau          joint torques                      n*1
-%  G            link inertial matrices             6*6*n
-%  Vdot_0       (optional1) base acceleration      6*1
-
+% [Name]            [Description]                               [Size]
+%  A                i-th body screws from i-th frame            6*n
+%  M                initial relative frames M_{i,i-1}           4*4*n
+%  q                joint angles                                n*1
+%  qdot             joint vleocities                            n*1
+%  tau              joint torques                               n*1
+%  G                link inertial matrices                      6*6*n
+%  Vdot_0           (optional1) base acceleration               6*1
+%  friction_coulomb (optional2) coulomb friction's coefficient  6*1
+%  friction_viscous (optional2) viscous friction's coefficient  6*1
 %% Outputs
 % [Name]       [Description]                      [Size]
 %  qddot        joint accelerations                n*1
@@ -18,10 +19,13 @@
 %% Implementation
 function qddot = solveForwardDynamics(A,M,q,qdot,tau,G,varargin)
     %% Initialization
-    n     = size(q,1);          % number of joints
+    n       = size(q,1);          % number of joints
     
-    V_0    = zeros(6,1);        % base velocity
-    Vdot_0 = zeros(6,1);        % base acceleration
+    V_0     = zeros(6,1);        % base velocity
+    Vdot_0  = zeros(6,1);        % base acceleration
+    friction_coulomb = zeros(n,1); % coulomb friction's coefficient  
+    friction_viscous = zeros(n,1); % viscous friction's coefficient 
+    bSigmoid = false;
     if     nargin == 6
     elseif nargin == 7
         Vdot_0  = varargin{1};  % optional base acceleration
@@ -29,6 +33,12 @@ function qddot = solveForwardDynamics(A,M,q,qdot,tau,G,varargin)
         Vdot_0           = varargin{1};         % optional base acceleration
         friction_coulomb = varargin{2}(:,1);    % optional coulomb friction's coefficient  
         friction_viscous = varargin{2}(:,2);    % optional viscous friction's coefficient   
+    elseif nargin == 9
+        bSigmoid         = true;
+        Vdot_0           = varargin{1};         % optional base acceleration
+        friction_coulomb = varargin{2}(:,1);    % optional coulomb friction's coefficient  
+        friction_viscous = varargin{2}(:,2);    % optional viscous friction's coefficient 
+        friction_coulomb_sigmoid = varargin{3};  % optional coulomb friction(sigmoid)'s coefficient 
     end
   
     T    = zeros(4,4,n);        % T_{i,i-1}
@@ -86,10 +96,15 @@ function qddot = solveForwardDynamics(A,M,q,qdot,tau,G,varargin)
     end
     
     %% Closed-Form Dynamics
+    if bSigmoid
+        qdot_coulomb = 2 ./ (1+exp(-friction_coulomb_sigmoid.*qdot)) - 1;
+    else
+        qdot_coulomb = sign(qdot);
+    end
     M_q = diagA'*L'*diagG*L*diagA;
     c_q = -diagA'*L'*(diagG*L*ad_A_qdot*W + ad_V'*diagG)*L*diagA*qdot;
     g_q = diagA'*L'*diagG*L*Vdot_base;
-    f_c = friction_coulomb.*sign(qdot);
+    f_c = friction_coulomb.*qdot_coulomb;
     f_v = friction_viscous.*qdot;
     qddot = M_q\(tau - c_q - g_q - f_c - f_v);
 end

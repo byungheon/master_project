@@ -48,4 +48,4 @@ if plotting.verbosity > 1
 end
 
 % 3. Save data
-filename = ['data/' basename num2str(j) '_H' num2str(H)]; save(filename);
+filename = ['data/' basename dynmodel.model '_' num2str(j) '_H' num2str(H)]; save(filename);

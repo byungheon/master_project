@@ -41,6 +41,6 @@ q = z(1:7);
 dq = z(8:14);
 dz = zeros(14,1);
 dz(1:7) = dq;
-dz(8:14) = solveForwardDynamics(robot_simul.A,robot_simul.M,q,dq,tau(:),robot_simul.G, Vdot_0, robot_simul.F);
-
+dz(8:14) = solveForwardDynamics(robot_simul.A,robot_simul.M,q,dq,tau(:),robot_simul.G, Vdot_0, robot_simul.F, robot_simul.Sigmoid);
+% disp(['odez:' num2str(dz(8:14)')]);
 end

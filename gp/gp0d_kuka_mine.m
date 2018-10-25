@@ -1,11 +1,11 @@
-%% gp0d_kuka.m
+%% gp0d_kuka_mine.m
 % *Summary:* Compute joint predictions and derivatives for multiple GPs
 % with uncertain inputs. Predictive variances contain uncertainty about the 
 % function, but no noise.
 % If gpmodel.nigp exists, individial noise contributions are added.
 % 
 %
-%   function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp0d(gpmodel, m, s)
+%   function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp0d_kuka_mine(gpmodel, m, s)
 %
 % *Input arguments:*
 %
@@ -42,12 +42,12 @@
 % # Centralize moments
 % # Vectorize derivatives
 
-function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp0d_kuka(gpmodel, m, s)
+function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp0d_kuka_mine(gpmodel, m, s)
 %% Code 
-
 % If no derivatives required, call gp0
-if nargout < 4; [M S V] = gp0_kuka(gpmodel, m, s); return; end
+if nargout < 4; [M S V] = gp0_kuka_dyn(gpmodel, m, s); return; end
 
+%% GP
 persistent K iK beta oldX oldn;
 [n, D] = size(gpmodel.inputs);    % number of examples and dimension of inputs
 E = size(gpmodel.targets,2);                               % number of outputs
@@ -155,8 +155,140 @@ for i=1:E
 end
 % 4) centralize moments
 S = S - M*M';
+%% Robot Dynamics
+persistent dynamics OPTIONS ctrlfcn u0 par;
+if isempty(dynamics)
+    dynamics    = @dynamics_kuka_6dof;
+    OPTIONS     = odeset('RelTol', 1e-2, 'AbsTol', 1e-2);
+    ctrlfcn     = str2func('zoh');   
+    u0          = cell(1,6);
+    par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
+end
 
+q       = m(1:6);
+qdot    = m(7:12);
+tau     = m(end-6+1:end);
+
+for j = 1:6, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
+[~, y] = ode45(dynamics, [0 gpmodel.stepsize/2 gpmodel.stepsize], m(1:12), OPTIONS, u0{:});
+
+% qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+qddot = (y(3,7:12)' - qdot)/gpmodel.stepsize;
+[dqddotdq, dqddotdqdot, dqddotdtau, dqddotdqdq, dqddotdqdqdot, dqddotdqdtau, dqddotdqdotdqdot, dqddotdqdotdtau, dqddotdtaudtau] = ...
+solveForwardDynamicsSecondDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+
+dFDdqdq         = zeros(6,6,6);
+dFDdqdotdq      = zeros(6,6,6);
+dFDdtaudq       = zeros(6,6,6);
+dFDdqdqdot      = zeros(6,6,6);
+dFDdqdotdqdot   = zeros(6,6,6);
+dFDdtaudqdot    = zeros(6,6,6);
+dFDdqdtau       = zeros(6,6,6);
+dFDdqdotdtau    = zeros(6,6,6);
+dFDdtaudtau     = zeros(6,6,6);
+
+for i = 1:6
+    for j = 1:6
+        dFDdqdq(:,j,i)      = dqddotdqdq(:,(j-1)*6+i);
+        dFDdqdqdot(:,j,i)   = dqddotdqdqdot(:,(j-1)*6+i);
+        dFDdqdtau(:,j,i)    = dqddotdqdtau(:,(j-1)*6+i);
+
+        dFDdqdotdq(:,j,i)       = dqddotdqdqdot(:,(i-1)*6+j);
+        dFDdqdotdqdot(:,j,i)    = dqddotdqdotdqdot(:,(j-1)*6+i);
+        dFDdqdotdtau(:,j,i)     = dqddotdqdotdtau(:,(j-1)*6+i);
+        
+        dFDdtaudq(:,i,j)        = dqddotdqdtau(:,(j-1)*6+i);
+        dFDdtaudqdot(:,i,j)     = dqddotdqdotdtau(:,(j-1)*6+i);
+        dFDdtaudtau(:,j,i)      = dqddotdtaudtau(:,(j-1)*6+i);
+    end
+end
+
+
+
+M(1:6)  = M(1:6) + (y(3,1:6)' - q);
+M(7:12) = M(7:12) + (y(3,7:12)' - qdot);
+
+A                   = zeros(E,D);
+A(1:6,7:12)         = eye(6,6) * gpmodel.stepsize;
+A(7:12,1:6)         = dqddotdq * gpmodel.stepsize;
+A(7:12,7:12)        = dqddotdqdot * gpmodel.stepsize;
+A(7:12,end-5:end)   = dqddotdtau * gpmodel.stepsize;
+
+V = V + A';
+
+Asigma_t = A * s;
+
+S = S + Asigma_t * V; 
+
+cov = s * V;
+
+dAdm = zeros(E,D,D);
+for i = 1:6
+    dAdm(7:12,1:6,i)        = dFDdqdq(:,:,i) * gpmodel.stepsize;
+    dAdm(7:12,7:12,i)       = dFDdqdotdq(:,:,i) * gpmodel.stepsize;
+    dAdm(7:12,end-5:end,i)  = dFDdtaudq(:,:,i) * gpmodel.stepsize;   
+end
+for i = 1:6
+    dAdm(7:12,1:6,i+6)        = dFDdqdqdot(:,:,i) * gpmodel.stepsize;
+    dAdm(7:12,7:12,i+6)       = dFDdqdotdqdot(:,:,i) * gpmodel.stepsize;
+    dAdm(7:12,end-5:end,i+6)  = dFDdtaudqdot(:,:,i) * gpmodel.stepsize;   
+end
+for i = 1:6
+    dAdm(7:12,1:6,i+end-6)        = dFDdqdtau(:,:,i) * gpmodel.stepsize;
+    dAdm(7:12,7:12,i+end-6)       = dFDdqdotdtau(:,:,i) * gpmodel.stepsize;
+    dAdm(7:12,end-5:end,i+end-6)  = dFDdtaudtau(:,:,i) * gpmodel.stepsize;   
+end
+dSDdAT = zeros(E,E,D,E);
+dSDdm  = zeros(E,E,D);
+for i = 1:D
+   for j = 1:E
+       temp_sigma       = zeros(E,E);
+       temp_sigma(:,j)  = Asigma_t(:,i);
+       temp_sigma(j,:)  = temp_sigma(j,:) + Asigma_t(:,i)';
+       dSDdAT(:,:,i,j)  = temp_sigma;
+   end
+end
+dAcovdm = zeros(E,E,D);
+Adcovds = zeros(E,E,D,D);
+dSDds   = zeros(E,E,D,D);
+dVDds   = zeros(D,E,D,D);
+for i = 1:D
+   tempmat = zeros(E,E);
+   for j = 1:D
+      tempmatdVD        = zeros(D,E);
+      tempmatdVD(i,:)   = A(:,j)';
+      dSDds(:,:,i,j)    = A(:,i) * (A(:,j)');
+      Adcovds(:,:,i,j)  = Asigma_t * dVds(:,:,i,j);  
+      dVDds(:,:,i,j)    = s \ tempmatdVD;
+      for k =1:E
+          tempmat = tempmat + dSDdAT(:,:,j,k) * dAdm(k,j,i);
+      end
+   end
+   dSDdm(:,:,i)     = tempmat;
+   dAcovdm(:,:,i)   = dAdm(:,:,i) * cov + Asigma_t * dVdm(:,:,i);
+end
+
+dMdm = dMdm + A;
+dSdm = dSdm + dSDdm + dAcovdm;
+dSds = dSds + dSDds + Adcovds;
+dVdm = dVdm + permute(dAdm,[2,1,3]);
+dVds = dVds + dVDds;
+%%
 % 5) vectorize derivatives
 dMds = reshape(dMds,[E D*D]);
 dSds = reshape(dSds,[E*E D*D]); dSdm = reshape(dSdm,[E*E D]);
 dVds = reshape(dVds,[D*E D*D]); dVdm = reshape(dVdm,[D*E D]);
+end
+
+function u = zoh(f, t, par) % **************************** zero-order hold
+d = par.delay;
+if d==0
+                  u = f;
+else
+  e = d/100; t0=t-(d-e/2);
+  if t<d-e/2,     u=f(1);
+  elseif t<d+e/2, u=(1-t0/e)*f(1) + t0/e*f(2);    % prevents ODE stiffness
+  else            u=f(2);
+  end
+end
+end

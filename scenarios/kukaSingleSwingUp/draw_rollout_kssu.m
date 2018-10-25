@@ -22,4 +22,4 @@ else
   text1 = ['(random) trial # ' num2str(jj) ', T=' num2str(H*dt) ' sec'];
   text2 = ['total experience (after this trial): ' num2str(dt*size(x,1)) ' sec'];
 end
-appVisualizeKUKA(q_draw', cost, text1, text2);
+appVisualizeKUKA(q_draw', cost, text1, text2, dt);

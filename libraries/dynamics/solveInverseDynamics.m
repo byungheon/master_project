@@ -39,17 +39,23 @@ function [tau, varargout] = solveInverseDynamics(A,M,q,qdot,qddot,G,varargin)
     Vdot_0 = zeros(6,1);        % base acceleration
     F_tip  = zeros(6,1);        % end-effector force
     T_end  = eye(4,4);          % end-effector pose T_{i+1,i}
-
+    
+    friction_coulomb = zeros(n,1); % coulomb friction's coefficient  
+    friction_viscous = zeros(n,1); % viscous friction's coefficient 
+    bSigmoid = false;
     if     nargin == 6          % no optional inputs
     elseif nargin == 7          % optional input 1
-        Vdot_0 = varargin{1};        
-    elseif nargin == 8          % optional input 2
-        F_tip  = varargin{1};
-        T_end  = varargin{2};
-    elseif nargin == 9          % optional input 1 & 2
-        Vdot_0 = varargin{1};    
-        F_tip  = varargin{2};
-        T_end  = varargin{3};
+        Vdot_0 = varargin{1};  
+    elseif nargin == 8
+        Vdot_0           = varargin{1};         % optional base acceleration
+        friction_coulomb = varargin{2}(:,1);    % optional coulomb friction's coefficient  
+        friction_viscous = varargin{2}(:,2);    % optional viscous friction's coefficient   
+    elseif nargin == 9
+        bSigmoid         = true;
+        Vdot_0           = varargin{1};         % optional base acceleration
+        friction_coulomb = varargin{2}(:,1);    % optional coulomb friction's coefficient  
+        friction_viscous = varargin{2}(:,2);    % optional viscous friction's coefficient 
+        friction_coulomb_sigmoid = varargin{3};  % optional coulomb friction(sigmoid)'s coefficient 
     else
         error('Init Error: undefined number of inputs');
     end
@@ -80,9 +86,18 @@ function [tau, varargout] = solveInverseDynamics(A,M,q,qdot,qddot,G,varargin)
         tau(i) = A(:,i)'*F(:,i);
     end
     
+    if bSigmoid
+        qdot_coulomb = 2 ./ (1+exp(-friction_coulomb_sigmoid.*qdot)) - 1;
+    else
+        qdot_coulomb = sign(qdot);
+    end
+    f_c = friction_coulomb.*qdot_coulomb;
+    f_v = friction_viscous.*qdot;
+    tau = tau + f_c + f_v;
     if nargout > 1
-        varargout{1} = V;
-        varargout{2} = Vdot;
-        varargout{3} = F;    
+        varargout{1} = T;
+        varargout{2} = V;
+        varargout{3} = Vdot;
+        varargout{4} = F;  
     end
 end

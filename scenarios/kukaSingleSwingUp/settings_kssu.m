@@ -66,7 +66,7 @@ dt = 0.05;                % [s] sampling time
 T = 5.0;                  % [s] prediction time
 H = ceil(T/dt);           % prediction steps (optimization horizon)
 maxH = H;                 % max pred horizon
-nc = 500;                 % size of controller training set
+nc = 300;                 % size of controller training set
 s = (0.01^2) * ones(1,14);% initial state variances
 S0 = diag(s);             % initial state covariance matrix
 mu0 = zeros(14,1);        % initial state mean
@@ -89,11 +89,11 @@ plant.dyno = dyno;
 plant.dyni = dyni;
 plant.difi = difi;
 plant.prop = @propagated; % handle to function that propagates state over time
-plant.angstd = [0;pi/8;0;-3*pi/8;pi/2;pi/2]; % mid point of each joint angle (we need to wrap up each angle in midpoint - pi ~ midpoint + pi) 
+plant.angstd = mu0(1:6); % mid point of each joint angle (we need to wrap up each angle in midpoint - pi ~ midpoint + pi) 
 % 4. Set up the policy structure
 policy.fcn = @(policy,m,s)conCat(@congp,@gSat,policy,m,s); % controller 
                                                            % representation
-policy.maxU = [100 100 50 50 40 20];                         % max. amplitude of 
+policy.maxU = [50 50 25 25 5 5];                         % max. amplitude of 
                                                            % control
 [mm ss cc] = gTrig(mu0, S0, plant.angi);                   % represent angles 
 mm = [mu0; mm]; cc = S0*cc; ss = [S0 cc; cc' ss];          % in complex plane      
@@ -107,7 +107,7 @@ policy.p.hyp = repmat(log([0.7 * ones(1, size(poli,2)) 1 0.01]'), 1,6);  % initi
 % 5. Set up the cost structure
 cost.fcn = @loss_kssu;                            % handle to cost function
 cost.gamma = 1;                                   % discount factor
-cost.p = [0.1 0.3];                               % lenghts of the links and length of pendulum
+cost.p = [0.4 0.7];                               % lenghts of the links and length of pendulum
 cost.width = 0.5;                                 % cost function width
 cost.expl = 0;                                    % exploration parameter
 cost.angle = plant.angi;                          % angle variables in cost
@@ -116,10 +116,21 @@ cost.target(1:6) = plant.angstd;  % target state
 cost.target(14)  = pi;
 
 % 6. Set up the GP dynamics model structure
-dynmodel.fcn = @gp0d_kuka;                % function for GP predictions
-dynmodel.train = @train;             % function to train dynamics model
-dynmodel.induce = zeros(400,0,1);    % shared inducing inputs (sparse GP)
-dynmodel.angstd = plant.angstd; % mid point of each joint angle (we need to wrap up each angle in midpoint - pi ~ midpoint + pi) 
+dynmodel.model = 'MINE';            % dynamics model: PILCO, PIREM, MINE
+switch dynmodel.model
+    case 'PILCO'
+        dynmodel.fcn = @gp0d_kuka;
+    case 'PIREM'
+        dynmodel.fcn = @gp0d_kuka_PIREM;
+    case 'MINE'
+        dynmodel.fcn = @gp0d_kuka_mine;
+end
+dynmodel.robot      = makeKukaR820_prior();
+dynmodel.Vdot0      = [0;0;0;0;0;0];
+dynmodel.stepsize   = dt;
+dynmodel.train      = @train;             % function to train dynamics model
+dynmodel.induce     = zeros(400,0,1);    % shared inducing inputs (sparse GP)
+dynmodel.angstd     = plant.angstd; % mid point of each joint angle (we need to wrap up each angle in midpoint - pi ~ midpoint + pi) 
 trainOpt = [300 500];                % defines the max. number of line searches
                                      % when training the GP dynamics models
                                      % trainOpt(1): full GP,
