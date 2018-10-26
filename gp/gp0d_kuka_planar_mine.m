@@ -45,7 +45,7 @@
 function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp0d_kuka_planar_mine(gpmodel, m, s)
 %% Code 
 % If no derivatives required, call gp0
-if nargout < 4; [M S V] = gp0_kuka_dyn(gpmodel, m, s); return; end
+if nargout < 4; [M S V] = gp0_kuka_planar_dyn(gpmodel, m, s); return; end
 
 %% GP
 persistent K iK beta oldX oldn;

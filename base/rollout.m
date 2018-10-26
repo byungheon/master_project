@@ -80,7 +80,7 @@ for i = 1:H % --------------------------------------------- generate trajectory
   latent(i,:) = [state u(i,:)];                                  % latent state
 
   % 2. Simulate dynamics -------------------------------------------------------
-  if (nargin == 6) && (isfield(dyn,'robot'))
+  if (nargin == 6) && (isfield(dyn,'model')) && (~strcmp(dyn.model,'PILCO'))
     gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, s(plant.jointi), zeros(length(plant.jointi),1), zeros(length(plant.jointi),1), dyn.robot.G, Vdot_0_control)';
   else
     gravity_control = zeros(1,length(policy.maxU));

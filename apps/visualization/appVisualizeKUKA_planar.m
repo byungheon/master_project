@@ -84,14 +84,14 @@ function appVisualizeKUKA_planar(varargin)
     axis equal;
     axis([-1 1 -1 1 -1.3 1.1]);
     xlabel('x'); ylabel('y'); zlabel('z');
-%     if bPilco
-%         reward = zeros(num_time,1);
-%         for i = 1:num_time
-%             reward(i) = 1-cost.fcn(cost, [trajectory(1:6,i); zeros(7,1); trajectory(7,i)],zeros(14));
-%         end
-%         text(0,-0.7, text1,'fontsize', 12);
-%         text(0,-0.9, text2,'fontsize', 12);
-%     end
+    if bPilco
+        reward = zeros(num_time,1);
+        for i = 1:num_time
+            reward(i) = 1-cost.fcn(cost, [trajectory(1:2,i); zeros(3,1); trajectory(3,i) + trajectory(1,i) - trajectory(2,i)],zeros(6));
+        end
+        text(0,-0.7, text1,'fontsize', 12);
+        text(0,-0.9, text2,'fontsize', 12);
+    end
         
     % draw base link
     patch(fv_base,'FaceColor',       [0.7 0.7 0.7], ...
