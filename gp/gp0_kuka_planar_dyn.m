@@ -1,9 +1,9 @@
-%% gp0_kuka.m
+%% gp0_kuka_planar_dyn.m
 % *Summary:* Compute joint predictions for multiple GPs with uncertain inputs.
 % If gpmodel.nigp exists, individial noise contributions are added.
 % Predictive variances contain uncertainty about the function, but no noise.
 %
-%   function [M, S, V] = gp0(gpmodel, m, s)
+%   function [M, S, V] = gp0_kuka_PIREM(gpmodel, m, s)
 %
 % *Input arguments:*
 %
@@ -33,9 +33,9 @@
 % # Compute predictive covariance matrix, non-central moments
 % # Centralize moments
 
-function [M, S, V] = gp0_kuka(gpmodel, m, s)
+function [M, S, V] = gp0_kuka_planar_dyn(gpmodel, m, s)
 %% Code
-
+%% GP
 persistent K iK beta oldX oldn;
 [n, D] = size(gpmodel.inputs);    % number of examples and dimension of inputs
 [n, E] = size(gpmodel.targets);     % number of examples and number of outputs
@@ -100,4 +100,60 @@ for i=1:E
 end
 
 % 4) centralize moments
-S = S - M*M';                                              
+S = S - M*M';
+
+%% Robot Dynamics
+persistent dynamics OPTIONS ctrlfcn u0 par jointlist njoint;
+if isempty(dynamics)
+    dynamics    = @dynamics_kp_nop;
+    OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
+    ctrlfcn     = str2func('zoh');   
+    par.dt      = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
+    jointlist   = gpmodel.jointi;
+    njoint      = length(jointlist);
+    u0          = cell(1,njoint);
+end
+
+q       = m(jointlist);
+qdot    = m(jointlist + njoint);
+tau     = m(end-njoint+1:end);
+
+for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
+[~, y] = ode45(dynamics, [0 gpmodel.stepsize/2 gpmodel.stepsize], m(1:(2*njoint)), OPTIONS, u0{:});
+
+% qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+
+qddot = (y(3,jointlist + njoint)' - qdot)/gpmodel.stepsize;
+[dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F);
+
+M(jointlist)            = M(jointlist) + (y(3,jointlist)' - q);
+M(jointlist + njoint)   = M(jointlist + njoint) + (y(3,jointlist + njoint)' - qdot);
+
+A                                        = zeros(E,D);
+A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
+A(jointlist + njoint,jointlist)          = dqddotdq * gpmodel.stepsize;
+A(jointlist + njoint,jointlist + njoint) = dqddotdqdot * gpmodel.stepsize;
+A(jointlist + njoint,end-njoint+1:end)   = dqddotdtau * gpmodel.stepsize;
+
+V = V + A';
+
+% disp('S: ');
+% disp(S);
+% disp('S_dyn: ');
+% disp(A * s * V);
+S = S + A * s * V;
+end
+function u = zoh(f, t, par) % **************************** zero-order hold
+d = par.delay;
+if d==0
+                  u = f;
+else
+  e = d/100; t0=t-(d-e/2);
+  if t<d-e/2,     u=f(1);
+  elseif t<d+e/2, u=(1-t0/e)*f(1) + t0/e*f(2);    % prevents ODE stiffness
+  else            u=f(2);
+  end
+end
+end
+
+

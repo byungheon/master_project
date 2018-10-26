@@ -51,7 +51,7 @@ function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp0d_kuka_PIREM(gpmodel
 % disp('s: ');
 % disp(s);
 % If no derivatives required, call gp0
-if nargout < 4; [M S V] = gp0_kuka_dyn(gpmodel, m, s); return; end
+if nargout < 4; [M S V] = gp0_kuka_planar_dyn(gpmodel, m, s); return; end
 %% GP
 persistent K iK beta oldX oldn;
 [n, D] = size(gpmodel.inputs);    % number of examples and dimension of inputs
@@ -165,35 +165,37 @@ dMds = reshape(dMds,[E D*D]);
 dSds = reshape(dSds,[E*E D*D]); dSdm = reshape(dSdm,[E*E D]);
 dVds = reshape(dVds,[D*E D*D]); dVdm = reshape(dVdm,[D*E D]);
 %% Robot Dynamics
-persistent dynamics OPTIONS ctrlfcn u0 par;
+persistent dynamics OPTIONS ctrlfcn u0 par jointlist njoint;
 if isempty(dynamics)
     dynamics    = @dynamics_kuka_6dof;
     OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
     ctrlfcn     = str2func('zoh');   
-    u0          = cell(1,6);
-    par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
+    par.dt      = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
+    jointlist   = gpmodel.jointi;
+    njoint      = length(jointlist);
+    u0          = cell(1,njoint);
 end
 
-q       = m(1:6);
-qdot    = m(7:12);
-tau     = m(end-6+1:end);
+q       = m(jointlist);
+qdot    = m(jointlist + njoint);
+tau     = m(end-njoint+1:end);
 
-for j = 1:6, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
-[~, y] = ode45(dynamics, [0 gpmodel.stepsize/2 gpmodel.stepsize], m(1:12), OPTIONS, u0{:});
+for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
+[~, y] = ode45(dynamics, [0 gpmodel.stepsize/2 gpmodel.stepsize], m(1:(2*njoint)), OPTIONS, u0{:});
 
 % qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
 
-qddot = (y(3,7:12)' - qdot)/gpmodel.stepsize;
+qddot = (y(3,jointlist + njoint)' - qdot)/gpmodel.stepsize;
 [dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F);
 
-M(1:6)  = M(1:6) + (y(3,1:6)' - q);
-M(7:12) = M(7:12) + (y(3,7:12)' - qdot);
+M(jointlist)            = M(jointlist) + (y(3,jointlist)' - q);
+M(jointlist + njoint)   = M(jointlist + njoint) + (y(3,jointlist + njoint)' - qdot);
 
-A                   = zeros(E,D);
-A(1:6,7:12)         = eye(6,6) * gpmodel.stepsize;
-A(7:12,1:6)         = dqddotdq * gpmodel.stepsize;
-A(7:12,7:12)        = dqddotdqdot * gpmodel.stepsize;
-A(7:12,end-5:end)   = dqddotdtau * gpmodel.stepsize;
+A                                        = zeros(E,D);
+A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
+A(jointlist + njoint,jointlist)          = dqddotdq * gpmodel.stepsize;
+A(jointlist + njoint,jointlist + njoint) = dqddotdqdot * gpmodel.stepsize;
+A(jointlist + njoint,end-njoint+1:end)   = dqddotdtau * gpmodel.stepsize;
 
 V = V + A';
 
@@ -202,6 +204,7 @@ V = V + A';
 % disp('S_dyn: ');
 % disp(A * s * V);
 S = S + A * s * V;
+
 end
 
 function u = zoh(f, t, par) % **************************** zero-order hold

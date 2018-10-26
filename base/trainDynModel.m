@@ -22,13 +22,13 @@ dynmodel.targets(:,difi) = dynmodel.targets(:,difi) - x(:,dyno(difi));
 
 in_list = [];
 for i = 1:size(dynmodel.targets,1)-1
-   tmpsign = sign(dynmodel.targets(i,1:6)).*sign((dynmodel.inputs(i,7:12)+dynmodel.inputs(i+1,7:12))/2);
-   tmpmag  = abs(dynmodel.targets(i,1:6)/dt)./ abs((dynmodel.inputs(i,7:12)+dynmodel.inputs(i+1,7:12))/2);
+   tmpsign = sign(dynmodel.targets(i,plant.jointi)).*sign((dynmodel.inputs(i,plant.jointi+length(plant.jointi))+dynmodel.inputs(i+1,plant.jointi+length(plant.jointi)))/2);
+   tmpmag  = abs(dynmodel.targets(i,plant.jointi)/dt)./ abs((dynmodel.inputs(i,plant.jointi+length(plant.jointi))+dynmodel.inputs(i+1,plant.jointi+length(plant.jointi)))/2);
    tmp = tmpsign.*(tmpmag <2.0).*(tmpmag>0.5);
    if  tmp>0
        disp('----------------------');
-       disp(dynmodel.targets(i,1:6)/dt);
-       disp((dynmodel.inputs(i,7:12)+dynmodel.inputs(i+1,7:12))/2);
+       disp(dynmodel.targets(i,plant.jointi)/dt);
+       disp((dynmodel.inputs(i,plant.jointi+length(plant.jointi))+dynmodel.inputs(i+1,plant.jointi+length(plant.jointi)))/2);
        in_list = [in_list i];
    end
 end
@@ -37,9 +37,9 @@ dynmodel.inputs     = dynmodel.inputs(in_list,:);
 dynmodel.targets    = dynmodel.targets(in_list,:);
 if (isfield(dynmodel,'model') && ~strcmp(dynmodel.model,'PILCO'))
     delta           = zeros(size(dynmodel.targets));
-    delta(:,1:6)    = dynmodel.inputs(:,7:12) * dt;
+    delta(:,plant.jointi)    = dynmodel.inputs(:,plant.jointi+length(plant.jointi)) * dt;
     for i = 1:size(dynmodel.inputs,1)
-        delta(i,7:12) = dt * solveForwardDynamics(dynmodel.robot.A,dynmodel.robot.M,dynmodel.inputs(i,1:6)',dynmodel.inputs(i,7:12)',dynmodel.inputs(i,end-Du+1:end)',dynmodel.robot.G, dynmodel.Vdot0, dynmodel.robot.F, dynmodel.robot.Sigmoid);
+        delta(i,plant.jointi+length(plant.jointi)) = dt * solveForwardDynamics(dynmodel.robot.A,dynmodel.robot.M,dynmodel.inputs(i,plant.jointi)',dynmodel.inputs(i,plant.jointi+length(plant.jointi))',dynmodel.inputs(i,end-Du+1:end)',dynmodel.robot.G, dynmodel.Vdot0, dynmodel.robot.F);
     end
     dynmodel.targets = dynmodel.targets - delta;
 end

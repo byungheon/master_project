@@ -75,7 +75,7 @@ end
 P = [zeros(D0,D2) eye(D0)]; P(difi,difi) = eye(length(difi));
 Mnext = P*M; Snext = P*S*P'; Snext = (Snext+Snext')/2;
 if isfield(plant,'angstd')
-   Mnext(1:6) = wrapMidPoint(Mnext(1:6)', plant.angstd')';
+   Mnext(plant.jointi) = wrapMidPoint(Mnext(plant.jointi)', plant.angstd')';
 end
 
 

@@ -16,7 +16,7 @@
 % 1. Generate trajectory rollout given the current policy
 if isfield(plant,'constraint'), HH = maxH; else HH = H; end
 [xx, yy, realCost{j+J}, latent{j}] = ...
-  rollout(gaussian(mu0, S0), policy, HH, plant, cost);
+  rollout(gaussian(mu0, S0), policy, HH, plant, cost, dynmodel);
 disp(xx);                           % display states of observed trajectory
 x = [x; xx]; y = [y; yy];                            % augment training set
 if plotting.verbosity > 0
@@ -28,7 +28,7 @@ end
 if plotting.verbosity > 1
   lat = cell(1,10);
   for i=1:10
-    [~,~,~,lat{i}] = rollout(gaussian(mu0, S0), policy, HH, plant, cost);
+    [~,~,~,lat{i}] = rollout(gaussian(mu0, S0), policy, HH, plant, cost, dynmodel);
   end
   
   if ~ishandle(4); figure(4); else set(0,'CurrentFigure',4); end; clf(4);

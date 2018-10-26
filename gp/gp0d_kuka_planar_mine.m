@@ -42,7 +42,7 @@
 % # Centralize moments
 % # Vectorize derivatives
 
-function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp0d_kuka_mine(gpmodel, m, s)
+function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp0d_kuka_planar_mine(gpmodel, m, s)
 %% Code 
 % If no derivatives required, call gp0
 if nargout < 4; [M S V] = gp0_kuka_dyn(gpmodel, m, s); return; end
@@ -158,7 +158,7 @@ S = S - M*M';
 %% Robot Dynamics
 persistent dynamics OPTIONS ctrlfcn u0 par jointlist njoint;
 if isempty(dynamics)
-    dynamics    = @dynamics_kuka_6dof;
+    dynamics    = @dynamics_kp_nop;
     OPTIONS     = odeset('RelTol', 1e-2, 'AbsTol', 1e-2);
     ctrlfcn     = str2func('zoh');   
     par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;

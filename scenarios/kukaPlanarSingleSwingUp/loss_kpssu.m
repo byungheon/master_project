@@ -1,4 +1,4 @@
-%% loss_kssu.m
+%% loss_kpssu.m
 % *Summary:* KuKa Single Swing Up loss function; the loss is
 % $1-\exp(-0.5*d^2*a)$,  where $a>0$ and  $d^2$ is the squared difference
 % between the actual and desired position of the end of the outer pendulum.
@@ -40,7 +40,7 @@
 % # Trigonometric augmentation
 % # Calculate loss
 
-function [L, dLdm, dLds, S2] = loss_kssu(cost, m, s)
+function [L, dLdm, dLds, S2] = loss_kpssu(cost, m, s)
 %% Code
 if isfield(cost,'width'); cw = cost.width; else cw = 1; end
 if ~isfield(cost,'expl') || isempty(cost.expl); b = 0; else b =  cost.expl; end
@@ -58,9 +58,10 @@ target = [cost.target(:); gTrig(cost.target(:), 0*s, cost.angle)];
 
 ell1 = cost.p(1);
 ell2 = cost.p(2);
-Q = zeros(D1); 
-Q(1:6,1:6) = diag(ell1^2 * ones(1,6));
-Q((D+1):(D+2),(D+1):(D+2)) = diag(ell2^2 * ones(1,2));
+ell3 = cost.p(3);
+Q    = zeros(D1); 
+Q(1:2,1:2) = diag([ell1^2 ell2^2]);
+Q((D+1):(D+2),(D+1):(D+2)) = diag(ell3^2 * ones(1,2));
 
 % 3. Trigonometric augmentation
 i = 1:D0; k = D0+1:D1;

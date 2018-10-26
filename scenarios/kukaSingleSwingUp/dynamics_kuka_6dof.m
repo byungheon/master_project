@@ -29,7 +29,7 @@ if(~isfield(robot_kuka_6dof, 'A'))
 end
 Vdot_0 = zeros(6,1); Vdot_0(6) = 0;
 tau = zeros(6,1);
-tau(1) = f1(t); 
+tau(1) = f1(t);
 tau(2) = f2(t);
 tau(3) = f3(t);
 tau(4) = f4(t);

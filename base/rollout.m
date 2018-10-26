@@ -75,13 +75,13 @@ for i = 1:H % --------------------------------------------- generate trajectory
   if isfield(policy, 'fcn')
     u(i,:) = policy.fcn(policy,s(poli),zeros(length(poli)));
   else
-    u(i,:) = 0.5 * policy.maxU.*(2*rand(1,nU)-1);
+    u(i,:) = 0.3 * policy.maxU.*(2*rand(1,nU)-1);
   end
   latent(i,:) = [state u(i,:)];                                  % latent state
 
   % 2. Simulate dynamics -------------------------------------------------------
-  if nargin == 6 
-    gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, s(1:6), zeros(6,1), zeros(6,1), dyn.robot.G, Vdot_0_control)';
+  if (nargin == 6) && (isfield(dyn,'robot'))
+    gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, s(plant.jointi), zeros(length(plant.jointi),1), zeros(length(plant.jointi),1), dyn.robot.G, Vdot_0_control)';
   else
     gravity_control = zeros(1,length(policy.maxU));
   end
@@ -102,7 +102,7 @@ for i = 1:H % --------------------------------------------- generate trajectory
   x(i+1,simi) = state(simi) + randn(size(simi))*chol(plant.noise);
   x(i+1,augi) = plant.augment(x(i+1,:));
   if isfield(plant, 'angstd')
-    x(i+1,1:6) = wrapMidPoint(x(i+1,1:6), plant.angstd');
+    x(i+1,plant.jointi) = wrapMidPoint(x(i+1,plant.jointi), plant.angstd');
   end
   % 5. Compute Cost ------------------------------------------------------------
   if nargout > 2

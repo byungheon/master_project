@@ -42,7 +42,6 @@
 function [Mnext, Snext, dMdm, dSdm, dMds, dSds, dMdp, dSdp] = ...
   propagated(m, s, plant, dynmodel, policy)
 %% Code
-
 if nargout <= 2                                  % just predict, no derivatives
   [Mnext, Snext] = propagate(m, s, plant, dynmodel, policy);
   return
@@ -99,7 +98,7 @@ end
 P = [zeros(D0,D2) eye(D0)]; P(difi,difi) = eye(length(difi));  P = sparse( P);
 Mnext = P*M; Snext = P*S*P'; Snext = (Snext+Snext')/2;
 if isfield(plant,'angstd')
-   Mnext(1:6) = wrapMidPoint(Mnext(1:6)', plant.angstd')';
+   Mnext(plant.jointi) = wrapMidPoint(Mnext(plant.jointi)', plant.angstd')';
 end
 PP = kron(P,P);
 dMdm =  P*Mdm; dMds =  P*Mds; dMdp =  P*Mdp;

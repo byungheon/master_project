@@ -103,35 +103,37 @@ end
 S = S - M*M';
 
 %% Robot Dynamics
-persistent dynamics OPTIONS ctrlfcn u0 par;
+persistent dynamics OPTIONS ctrlfcn u0 par jointlist njoint;
 if isempty(dynamics)
     dynamics    = @dynamics_kuka_6dof;
     OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
-    ctrlfcn     = str2func('zoh');
-    u0          = cell(1,6);
-    par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
+    ctrlfcn     = str2func('zoh');   
+    par.dt      = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
+    jointlist   = gpmodel.jointi;
+    njoint      = length(jointlist);
+    u0          = cell(1,njoint);
 end
 
-q       = m(1:6);
-qdot    = m(7:12);
-tau     = m(end-6+1:end);
+q       = m(jointlist);
+qdot    = m(jointlist + njoint);
+tau     = m(end-njoint+1:end);
 
-for j = 1:6, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
-[~, y] = ode45(dynamics, [0 gpmodel.stepsize/2 gpmodel.stepsize], m(1:12), OPTIONS, u0{:});
+for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
+[~, y] = ode45(dynamics, [0 gpmodel.stepsize/2 gpmodel.stepsize], m(1:(2*njoint)), OPTIONS, u0{:});
 
 % qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
 
-qddot = (y(3,7:12)' - qdot)/gpmodel.stepsize;
-[dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F,gpmodel.robot.Sigmoid);
+qddot = (y(3,jointlist + njoint)' - qdot)/gpmodel.stepsize;
+[dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F);
 
-M(1:6)  = M(1:6) + (y(3,1:6)' - q);
-M(7:12) = M(7:12) + (y(3,7:12)' - qdot);
+M(jointlist)            = M(jointlist) + (y(3,jointlist)' - q);
+M(jointlist + njoint)   = M(jointlist + njoint) + (y(3,jointlist + njoint)' - qdot);
 
-A                   = zeros(E,D);
-A(1:6,7:12)         = eye(6,6) * gpmodel.stepsize;
-A(7:12,1:6)         = dqddotdq * gpmodel.stepsize;
-A(7:12,7:12)        = dqddotdqdot * gpmodel.stepsize;
-A(7:12,end-5:end)   = dqddotdtau * gpmodel.stepsize;
+A                                        = zeros(E,D);
+A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
+A(jointlist + njoint,jointlist)          = dqddotdq * gpmodel.stepsize;
+A(jointlist + njoint,jointlist + njoint) = dqddotdqdot * gpmodel.stepsize;
+A(jointlist + njoint,end-njoint+1:end)   = dqddotdtau * gpmodel.stepsize;
 
 V = V + A';
 
