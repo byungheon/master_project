@@ -82,6 +82,7 @@ function appVisualizeKUKA(varargin)
     % highlighting.
     figure('Name','KUKA LWR iiwa R820','NumberTitle','off','units','pixels','pos',[100 0 1000 1000]);
     hold on;
+%     view([0 0]);
     axis equal;
     axis([-1 1 -1 1 -1.3 1.1]);
     xlabel('x'); ylabel('y'); zlabel('z');
@@ -124,7 +125,7 @@ function appVisualizeKUKA(varargin)
     material('dull');
 
     % Fix the axes scaling, and set a nice view angle
-    view([-135 35]);
+    view([-15 15]);
     getframe;
 
     %% Animation Loop

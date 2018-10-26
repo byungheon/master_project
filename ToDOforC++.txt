@@ -1,0 +1,2 @@
+1. initial varaince -> square
+2. q wrapping.. very important.. for propagation and 

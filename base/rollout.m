@@ -75,7 +75,7 @@ for i = 1:H % --------------------------------------------- generate trajectory
   if isfield(policy, 'fcn')
     u(i,:) = policy.fcn(policy,s(poli),zeros(length(poli)));
   else
-    u(i,:) = policy.maxU.*(2*rand(1,nU)-1);
+    u(i,:) = 0.5 * policy.maxU.*(2*rand(1,nU)-1);
   end
   latent(i,:) = [state u(i,:)];                                  % latent state
 

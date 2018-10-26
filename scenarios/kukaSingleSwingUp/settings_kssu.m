@@ -62,11 +62,11 @@ poli = [1 2 3 4 5 6 7 8 9 10 11 12 13 15 16];
 difi = [1 2 3 4 5 6 7 8 9 10 11 12 13 14];
 
 % 2. Set up the scenario
-dt = 0.05;                % [s] sampling time
+dt = 0.02;                % [s] sampling time
 T = 5.0;                  % [s] prediction time
 H = ceil(T/dt);           % prediction steps (optimization horizon)
 maxH = H;                 % max pred horizon
-nc = 300;                 % size of controller training set
+nc = 250;                 % size of controller training set
 s = (0.01^2) * ones(1,14);% initial state variances
 S0 = diag(s);             % initial state covariance matrix
 mu0 = zeros(14,1);        % initial state mean

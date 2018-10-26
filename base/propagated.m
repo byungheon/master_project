@@ -110,8 +110,6 @@ dSdm = (dSdm + dSdm(XT(:),:))/2; dMds = (dMds + dMds(:,XT(:)))/2;
 dSds = (dSds + dSds(XT(:),:))/2; dSds = (dSds + dSds(:,XT(:)))/2;
 dSdp = (dSdp + dSdp(XT(:),:))/2;
 
-disp('------------------------------------------------------')
-
 % A1) Separate multiple dynamics models ---------------------------------------
 function [dyn i k] = sliceModel(dynmodel,n,ii,D1,D2,D3) % separate sub-dynamics
 if isfield(dynmodel,'sub')
