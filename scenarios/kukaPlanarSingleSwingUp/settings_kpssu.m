@@ -116,7 +116,7 @@ cost.target = zeros(6,1);
 cost.target(6)  = pi;
 
 % 6. Set up the GP dynamics model structure
-dynmodel.model = 'MINE';            % dynamics model: PILCO, PIREM, MINE
+dynmodel.model = 'PILCO';            % dynamics model: PILCO, PIREM, MINE
 dynmodel.jointi = jointi;
 switch dynmodel.model
     case 'PILCO'

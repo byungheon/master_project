@@ -27,9 +27,9 @@ for i = 1:size(targets_temp,1)-1
    tmpmag  = abs(targets_temp(i,plant.jointi)/dt)./ abs((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
    tmp = tmpsign.*(tmpmag <2.0).*(tmpmag>0.5);
    if  tmp>0
-       disp('----------------------');
-       disp(targets_temp(i,plant.jointi)/dt);
-       disp((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
+%        disp('----------------------');
+%        disp(targets_temp(i,plant.jointi)/dt);
+%        disp((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
        in_list = [in_list i];
    end
 end
