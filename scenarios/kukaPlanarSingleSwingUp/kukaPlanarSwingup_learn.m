@@ -19,7 +19,6 @@
 clear all; close all;
 settings_kpssu;                 % load scenario-specific settings
 basename = 'KukaPlanarSingleSwingUp_'; % filename used for saving data
-
 % 2. Initial J random rollouts
 for jj = 1:J
   [xx, yy, realCost{jj}, latent{jj}] = ...

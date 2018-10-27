@@ -17,7 +17,7 @@
 if isfield(plant,'constraint'), HH = maxH; else HH = H; end
 [xx, yy, realCost{j+J}, latent{j}] = ...
   rollout(gaussian(mu0, S0), policy, HH, plant, cost, dynmodel);
-disp(xx);                           % display states of observed trajectory
+% disp(xx);                           % display states of observed trajectory
 x = [x; xx]; y = [y; yy];                            % augment training set
 if plotting.verbosity > 0
   if ~ishandle(3); figure(3); else set(0,'CurrentFigure',3); end

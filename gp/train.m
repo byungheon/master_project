@@ -71,7 +71,7 @@ end
 
 % 2b) If necessary: sparse training using FITC/SPGP (Snelson & Ghahramani, 2006)
 if isfield(gpmodel,'induce')            % are we using a sparse approximation?
-  [N D] = size(gpmodel.inputs); 
+  [N D] = size(gpmodel.inputs);
   [M uD uE] = size(gpmodel.induce);
   if M >= N; return; end     % if too few training examples, we don't need FITC
   fprintf('Train pseudo-inputs of sparse GP ...\n');

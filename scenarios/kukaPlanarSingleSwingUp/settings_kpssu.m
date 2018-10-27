@@ -116,15 +116,15 @@ cost.target = zeros(6,1);
 cost.target(6)  = pi;
 
 % 6. Set up the GP dynamics model structure
-dynmodel.model = 'PIREM';            % dynamics model: PILCO, PIREM, MINE
+dynmodel.model = 'MINE';            % dynamics model: PILCO, PIREM, MINE
 dynmodel.jointi = jointi;
 switch dynmodel.model
     case 'PILCO'
-        dynmodel.fcn = @gp0d;
+        dynmodel.fcn = @gp1d;
     case 'PIREM'
-        dynmodel.fcn = @gp0d_kuka_planar_PIREM;
+        dynmodel.fcn = @gp1d_kuka_planar_PIREM;
     case 'MINE'
-        dynmodel.fcn = @gp0d_kuka_planar_mine;
+        dynmodel.fcn = @gp1d_kuka_planar_mine;
 end
 dynmodel.robot      = makeKukaR820_planar_prior();
 dynmodel.Vdot0      = [0;0;0;0;0;0];
