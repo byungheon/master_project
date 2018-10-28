@@ -45,7 +45,7 @@ function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp1d_kuka_planar_PIREM(
 %% Code
 
 % If no derivatives are required, call gp1
-if nargout < 4; [M S V] = gp1(gpmodel, m, s); return; end
+if nargout < 4; [M S V] = gp1_kuka_planar_dyn(gpmodel, m, s); return; end
 % If there are no inducing inputs, back off to gp0d (no sparse GP required)
 if numel(gpmodel.induce) == 0
   [M S V dMdm dSdm dVdm dMds dSds dVds] = gp0d_kuka_planar_PIREM(gpmodel, m, s); return;
