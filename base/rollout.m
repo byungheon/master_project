@@ -105,9 +105,9 @@ for i = 1:H % --------------------------------------------- generate trajectory
   state(simi) = next(simi); state(augi) = plant.augment(state);
   x(i+1,simi) = state(simi) + randn(size(simi))*chol(plant.noise);
   x(i+1,augi) = plant.augment(x(i+1,:));
-  if isfield(plant, 'angstd')
-    x(i+1,plant.jointi) = wrapMidPoint(x(i+1,plant.jointi), plant.angstd');
-  end
+%   if isfield(plant, 'angstd')
+%     x(i+1,plant.jointi) = wrapMidPoint(x(i+1,plant.jointi), plant.angstd');
+%   end
   % 5. Compute Cost ------------------------------------------------------------
   if nargout > 2
 %     L(i) = cost.fcn(cost,state(dyno)',zeros(length(dyno)));

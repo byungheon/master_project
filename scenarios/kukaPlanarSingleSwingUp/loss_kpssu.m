@@ -60,8 +60,9 @@ ell1 = cost.p(1);
 ell2 = cost.p(2);
 ell3 = cost.p(3);
 Q    = zeros(D1); 
-Q(1:2,1:2) = diag([ell1^2 ell2^2]);
-Q((D+1):(D+2),(D+1):(D+2)) = diag(ell3^2 * ones(1,2));
+Q((D+1):(D+2),(D+1):(D+2)) = diag(ell1^2 * ones(1,2));
+Q((D+3):(D+4),(D+3):(D+4)) = diag(ell2^2 * ones(1,2));
+Q((D+5):(D+6),(D+5):(D+6)) = diag(ell3^2 * ones(1,2));
 
 % 3. Trigonometric augmentation
 i = 1:D0; k = D0+1:D1;

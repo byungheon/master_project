@@ -97,9 +97,9 @@ end
 % 4) Compute distribution of the next state -----------------------------------
 P = [zeros(D0,D2) eye(D0)]; P(difi,difi) = eye(length(difi));  P = sparse( P);
 Mnext = P*M; Snext = P*S*P'; Snext = (Snext+Snext')/2;
-if isfield(plant,'angstd')
-   Mnext(plant.jointi) = wrapMidPoint(Mnext(plant.jointi)', plant.angstd')';
-end
+% if isfield(plant,'angstd')
+%    Mnext(plant.jointi) = wrapMidPoint(Mnext(plant.jointi)', plant.angstd')';
+% end
 PP = kron(P,P);
 dMdm =  P*Mdm; dMds =  P*Mds; dMdp =  P*Mdp;
 dSdm = PP*Sdm; dSds = PP*Sds; dSdp = PP*Sdp;

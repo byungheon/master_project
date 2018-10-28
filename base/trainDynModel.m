@@ -21,22 +21,22 @@ inputs_temp = [xaug(:,dyni) xx(:,end-Du+1:end)];     % use dyni and ctrl
 targets_temp = yy(:,dyno);
 targets_temp(:,difi) = targets_temp(:,difi) - xx(:,dyno(difi));
 
-in_list = [];
-for i = 1:size(targets_temp,1)-1
-   tmpsign = sign(targets_temp(i,plant.jointi)).*sign((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
-   tmpmag  = abs(targets_temp(i,plant.jointi)/dt)./ abs((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
-   tmp = tmpsign.*(tmpmag <2.0).*(tmpmag>0.5);
-   if  tmp>0
-%        disp('----------------------');
-%        disp(targets_temp(i,plant.jointi)/dt);
-%        disp((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
-       in_list = [in_list i];
-   end
-end
-if length(in_list) > 100
+% in_list = [];
+% for i = 1:size(targets_temp,1)-1
+%    tmpsign = sign(targets_temp(i,plant.jointi)).*sign((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
+%    tmpmag  = abs(targets_temp(i,plant.jointi)/dt)./ abs((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
+%    tmp = tmpsign.*(tmpmag <2.0).*(tmpmag>0.5);
+%    if  tmp>0
+% %        disp('----------------------');
+% %        disp(targets_temp(i,plant.jointi)/dt);
+% %        disp((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
+%        in_list = [in_list i];
+%    end
+% end
+if size(targets_temp,1) > 100
    disp('Random Sampling from obtained dynamic data');
-   new_list = randsample(length(in_list),100);
-   in_list = in_list(new_list);
+   in_list = randsample(size(targets_temp,1),100);
+   
 end
 x(end - initial_length +1:end,:) = [];
 y(end - initial_length +1:end,:) = [];
