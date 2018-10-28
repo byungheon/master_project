@@ -74,9 +74,9 @@ end
 % 4) Compute distribution of the next state -----------------------------------
 P = [zeros(D0,D2) eye(D0)]; P(difi,difi) = eye(length(difi));
 Mnext = P*M; Snext = P*S*P'; Snext = (Snext+Snext')/2;
-if isfield(plant,'angstd')
-   Mnext(plant.jointi) = wrapMidPoint(Mnext(plant.jointi)', plant.angstd')';
-end
+% if isfield(plant,'angstd')
+%    Mnext(plant.jointi) = wrapMidPoint(Mnext(plant.jointi)', plant.angstd')';
+% end
 
 
 function [dyn i k] = sliceModel(dynmodel,n,ii,D1,D2,D3) % separate sub-dynamics
