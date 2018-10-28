@@ -40,9 +40,13 @@ rand('seed', 20); randn('state', 5);
 %  3~4   dq            angular velocity of each joint
 %  5     dtheta        angular velocity of a pendulum
 %  6     theta         angle of a pendulum
-%  7     sin(theta)    complex representation ...
-%  8     cos(theta)    ... of theta
-%  9~10  u             joint torque that can be applied at each joint
+%  7     sin(q1)       complex representation ...
+%  8     cos(q1)       ... of theta
+%  9     sin(q2)       complex representation ...
+%  10     cos(q2)       ... of theta
+%  11     sin(theta)       complex representation ...
+%  12     cos(theta)       ... of theta
+%  13~14  u             joint torque that can be applied at each joint
 
 
 % 1b. Important indices
@@ -57,9 +61,9 @@ rand('seed', 20); randn('state', 5);
 odei = [1 2 6 3 4 5];
 augi = [];
 dyno = [1 2 3 4 5 6];
-angi = [6];
-dyni = [1 2 3 4 5 7 8];
-poli = [1 2 3 4 5 7 8];
+angi = [1 2 6];
+dyni = [3 4 5 7 8 9 10 11 12];
+poli = [3 4 5 7 8 9 10 11 12];
 difi = [1 2 3 4 5 6];
 jointi = [1 2];
 % 2. Set up the scenario
@@ -108,7 +112,7 @@ policy.p.hyp = repmat(log([0.7 * ones(1, size(poli,2)) 1 0.01]'), 1,length(polic
 % 5. Set up the cost structure
 cost.fcn = @loss_kpssu;                           % handle to cost function
 cost.gamma = 1;                                   % discount factor
-cost.p = [0.35 0.3 0.8];                               % lenghts of the links and length of pendulum
+cost.p = [0.5 0.4 0.8];                               % lenghts of the links and length of pendulum
 cost.width = 0.5;                                 % cost function width
 cost.expl = 0;                                    % exploration parameter
 cost.angle = plant.angi;                          % angle variables in cost

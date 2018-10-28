@@ -14,11 +14,11 @@
 %% Code
 
 if exist('j','var') && ~isempty(M{j})
-  q_draw = latent{j}(:,[plant.jointi plant.angi]);
+  q_draw = latent{j}(:,[plant.jointi plant.angi(3)]);
   text1 = ['trial # ' num2str(j+J) ', T=' num2str(H*dt) ' sec'];
   text2 = ['total experience (after this trial): ' num2str(dt*size(x,1)) ' sec'];
 else
-  q_draw = latent{jj}(:,[plant.jointi plant.angi]);
+  q_draw = latent{jj}(:,[plant.jointi plant.angi(3)]);
   text1 = ['(random) trial # ' num2str(jj) ', T=' num2str(H*dt) ' sec'];
   text2 = ['total experience (after this trial): ' num2str(dt*size(x,1)) ' sec'];
 end
