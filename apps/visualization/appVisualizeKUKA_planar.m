@@ -78,7 +78,12 @@ function appVisualizeKUKA_planar(varargin)
     % The model is rendered with a PATCH graphics object. We also add some dynamic
     % lighting, and adjust the material properties to change the specular
     % highlighting.
-    figure('Name','KUKA LWR iiwa R820','NumberTitle','off','units','pixels','pos',[100 0 1000 1000]);
+    if ~ishghandle(1)
+        figure('Name','KUKA LWR iiwa R820','NumberTitle','off','units','pixels','pos',[100 0 1000 1000]);
+    else
+        set(0,'CurrentFigure',1);
+    end
+    clf(1);
     hold on;
 %     view([0 0]);
     axis equal;

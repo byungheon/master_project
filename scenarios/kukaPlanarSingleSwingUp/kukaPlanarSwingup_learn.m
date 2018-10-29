@@ -18,7 +18,7 @@
 % 1. Initialization
 clear all; close all;
 settings_kpssu;                 % load scenario-specific settings
-basename = 'KukaPlanarSingleSwingUp_'; % filename used for saving data
+basename = 'KukaPlanarSingleSwingUp_Temp_'; % filename used for saving data
 % 2. Initial J random rollouts
 for jj = 1:J
   [xx, yy, realCost{jj}, latent{jj}] = ...
@@ -49,8 +49,7 @@ for j = 1:N
   learnPolicy;     % learn policy
   applyController; % apply controller to system
   disp(['controlled trial # ' num2str(j)]);
-  if plotting.verbosity > 0;      % visualization of trajectory
-    if ~ishandle(1); figure(1); else set(0,'CurrentFigure',1); end; clf(1);
+  if plotting.verbosity > 0      % visualization of trajectory
     draw_rollout_kpssu; 
   end 
   toc

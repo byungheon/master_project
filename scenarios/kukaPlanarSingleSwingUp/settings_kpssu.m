@@ -75,7 +75,7 @@ nc = 200;                 % size of controller training set
 s = (0.01^2) * ones(1,6);% initial state variances
 S0 = diag(s);             % initial state covariance matrix
 mu0 = zeros(6,1);        % initial state mean
-N = 40;                   % number of policy searches
+N = 60;                   % number of policy searches
 J = 1;                    % J initial (random) trajectories, each of length H 
 K = 1;                    % number of initial states for which we optimize
 
