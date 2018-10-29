@@ -43,14 +43,16 @@
 
 function [M, S, V, dMdm, dSdm, dVdm, dMds, dSds, dVds] = gp1d_kuka_planar_mine(gpmodel, m, s)
 %% Code
-
 % If no derivatives are required, call gp1
 if nargout < 4; [M S V] = gp1_kuka_planar_dyn(gpmodel, m, s); return; end
 % If there are no inducing inputs, back off to gp0d (no sparse GP required)
 if numel(gpmodel.induce) == 0
   [M S V dMdm dSdm dVdm dMds dSds dVds] = gp0d_kuka_planar_mine(gpmodel, m, s); return;
 end
-
+D_g = length(m);
+gp_list = gpmodel.jointi(end)+1:length(m);
+m_gp = m(gp_list);
+s_gp = s(gp_list,gp_list);
 % 1) If necessary: re-compute cached variables
 persistent iK iK2 beta oldX;
 ridge = 1e-6;                        % jitter to make matrix better conditioned
@@ -99,11 +101,11 @@ inp = zeros(np,D,E);
 
 % 2) Compute predicted mean and inv(s) times input-output covariance
 for i = 1:E
-  inp(:,:,i) = bsxfun(@minus,pinput(:,:,min(i,pE)),m');   % centralize p-inputs
+  inp(:,:,i) = bsxfun(@minus,pinput(:,:,min(i,pE)),m_gp');   % centralize p-inputs
   
   L = diag(exp(-X(1:D,i)));
   in = inp(:,:,i)*L;
-  B = L*s*L+eye(D);  LiBL = L/B*L; % iR = LiBL;
+  B = L*s_gp*L+eye(D);  LiBL = L/B*L; % iR = LiBL;
   
   t = in/B;
   l = exp(-sum(in.*t,2)/2); lb = l.*beta(:,i);
@@ -130,9 +132,9 @@ for i=1:E
   ii = inpiell2(:,:,i);
   
   for j=1:i
-    R = s*diag(iell2(:,i)+iell2(:,j))+eye(D); t = 1/sqrt(det(R));
+    R = s_gp*diag(iell2(:,i)+iell2(:,j))+eye(D); t = 1/sqrt(det(R));
     ij = inpiell2(:,:,j);
-    L = exp(bsxfun(@plus,k(:,i),k(:,j)')+maha(ii,-ij,R\s/2));
+    L = exp(bsxfun(@plus,k(:,i),k(:,j)')+maha(ii,-ij,R\s_gp/2));
     
     if i==j
       iKL = iK2(:,:,i).*L; s1iKL = sum(iKL,1); s2iKL = sum(iKL,2);
@@ -175,7 +177,7 @@ end
 % 4) Centralize moments
 S = S - M*M';
 
-%% Robot Dynamics
+%% Initialization for robot dynamics
 persistent dynamics OPTIONS ctrlfcn u0 par jointlist njoint;
 if isempty(dynamics)
     dynamics    = @dynamics_kp_nop;
@@ -186,7 +188,31 @@ if isempty(dynamics)
     njoint      = length(jointlist);
     u0          = cell(1,njoint);
 end
+%% converting GP variables to global
+% M,S,V
+invscovsx = [zeros(njoint,D);eye(D,D)];
+invscovsx = sparse(invscovsx);
+V = invscovsx * V;
 
+% Gradient_g
+dMdm_g = [zeros(E,njoint) dMdm];
+dMds_g = zeros(E,D_g,D_g);
+dMds_g(:,gp_list,gp_list) = dMds;
+dSdm_g = zeros(E,E,D_g);
+dSdm_g(:,:,gp_list) = dSdm;
+dSds_g = zeros(E,E,D_g,D_g);
+dSds_g(:,:,gp_list,gp_list) = dSds;
+dVdm_g = zeros(D_g,E,D_g);
+dVds_g = zeros(D_g,E,D_g,D_g);
+for i = 1:D
+    dVdm_g(:,:,gp_list(i)) = invscovsx * dVdm(:,:,i);
+    for j = 1:D
+         dVds_g(:,:,gp_list(i),gp_list(j)) = invscovsx * dVds(:,:,i,j);
+    end
+end
+%% Robot Dynamics
+D_D     = njoint*3;
+dynamics_list = [jointlist njoint + jointlist [D_g-njoint+1:D_g]];
 q       = m(jointlist);
 qdot    = m(jointlist + njoint);
 tau     = m(end-njoint+1:end);
@@ -225,26 +251,16 @@ for i = 1:njoint
     end
 end
 
-
-
 M(jointlist)            = M(jointlist) + (y(3,jointlist)' - q);
 M(jointlist + njoint)   = M(jointlist + njoint) + (y(3,jointlist + njoint)' - qdot);
 
-A                                        = zeros(E,D);
+A                                        = zeros(E,D_D);
 A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
 A(jointlist + njoint,jointlist)          = dqddotdq * gpmodel.stepsize;
 A(jointlist + njoint,jointlist + njoint) = dqddotdqdot * gpmodel.stepsize;
 A(jointlist + njoint,end-njoint+1:end)   = dqddotdtau * gpmodel.stepsize;
 
-V = V + A';
-
-Asigma_t = A * s;
-
-S = S + Asigma_t * V; 
-
-cov = s * V;
-
-dAdm = zeros(E,D,D);
+dAdm = zeros(E,D_D,D_D);
 for i = 1:njoint
     dAdm(jointlist + njoint,jointlist,i)                = dFDdqdq(:,:,i) * gpmodel.stepsize;
     dAdm(jointlist + njoint,jointlist + njoint,i)       = dFDdqdotdq(:,:,i) * gpmodel.stepsize;
@@ -260,9 +276,32 @@ for i = 1:njoint
     dAdm(jointlist + njoint,jointlist + njoint,i+end-njoint)    = dFDdqdotdtau(:,:,i) * gpmodel.stepsize;
     dAdm(jointlist + njoint,end-njoint+1:end,i+end-njoint)      = dFDdtaudtau(:,:,i) * gpmodel.stepsize;   
 end
-dSDdAT = zeros(E,E,D,E);
-dSDdm  = zeros(E,E,D);
-for i = 1:D
+
+%% converting Dynamics variables to global
+invscovsx = zeros(D_g,D_D);
+invscovsx(dynamics_list,1:end) = eye(D_D);
+invscovsx = sparse(invscovsx);
+V_dyn     = invscovsx * (A'); % D_g x E
+
+dVdyndm_g = zeros(D_g,E,D_g);
+for i = 1:D_D
+    dVdyndm_g(:,:,dynamics_list(i)) = invscovsx * (dAdm(:,:,i)');
+end
+
+%%
+V_gp = V;
+V = V + V_dyn;
+
+S = S + A * s(dynamics_list,dynamics_list) * (A') + V_dyn' * s * V_gp; 
+
+Asigma_t = V_dyn' * s;
+
+cov         = s * V_gp;
+A_g         = V_dyn';
+
+dSDdAT = zeros(E,E,D_g,E);
+dSDdm  = zeros(E,E,D_g);
+for i = 1:D_g
    for j = 1:E
        temp_sigma       = zeros(E,E);
        temp_sigma(:,j)  = Asigma_t(:,i);
@@ -270,36 +309,37 @@ for i = 1:D
        dSDdAT(:,:,i,j)  = temp_sigma;
    end
 end
-dAcovdm = zeros(E,E,D);
-Adcovds = zeros(E,E,D,D);
-dSDds   = zeros(E,E,D,D);
-dVDds   = zeros(D,E,D,D);
-for i = 1:D
+dAcovdm = zeros(E,E,D_g);
+Adcovds = zeros(E,E,D_g,D_g);
+dSDds   = zeros(E,E,D_g,D_g);
+dVDds   = zeros(D_g,E,D_g,D_g);
+for i = 1:D_g
    tempmat = zeros(E,E);
-   for j = 1:D
-      tempmatdVD        = zeros(D,E);
-      tempmatdVD(i,:)   = A(:,j)';
-      dSDds(:,:,i,j)    = A(:,i) * (A(:,j)');
-      Adcovds(:,:,i,j)  = Asigma_t * dVds(:,:,i,j);  
+   for j = 1:D_g
+      tempmatdVD        = zeros(D_g,E);
+      tempmatdVD(i,:)   = A_g(:,j)';
+      dSDds(:,:,i,j)    = A_g(:,i) * (A_g(:,j)');
+      Adcovds(:,:,i,j)  = Asigma_t * dVds_g(:,:,i,j);  
       dVDds(:,:,i,j)    = s \ tempmatdVD;
       for k =1:E
-          tempmat = tempmat + dSDdAT(:,:,j,k) * dAdm(k,j,i);
+          tempmat = tempmat + dSDdAT(:,:,j,k) * dVdyndm_g(j,k,i);
       end
    end
    dSDdm(:,:,i)     = tempmat;
-   dAcovdm(:,:,i)   = dAdm(:,:,i) * cov + Asigma_t * dVdm(:,:,i);
+   dAcovdm(:,:,i)   = dVdyndm_g(:,:,i)' * cov + Asigma_t * dVdm_g(:,:,i);
 end
 
-dMdm = dMdm + A;
-dSdm = dSdm + dSDdm + dAcovdm;
-dSds = dSds + dSDds + Adcovds;
-dVdm = dVdm + permute(dAdm,[2,1,3]);
-dVds = dVds + dVDds;
+dMdm = dMdm_g + A_g;
+dMds = dMds_g;
+dSdm = dSdm_g + dSDdm + dAcovdm;
+dSds = dSds_g + dSDds + Adcovds;
+dVdm = dVdm_g + dVdyndm_g;
+dVds = dVds_g + dVDds;
 %%
 % 5) vectorize derivatives
-dMds = reshape(dMds,[E D*D]);
-dSds = reshape(dSds,[E*E D*D]); dSdm = reshape(dSdm,[E*E D]);
-dVds = reshape(dVds,[D*E D*D]); dVdm = reshape(dVdm,[D*E D]);
+dMds = reshape(dMds,[E D_g*D_g]);
+dSds = reshape(dSds,[E*E D_g*D_g]); dSdm = reshape(dSdm,[E*E D_g]);
+dVds = reshape(dVds,[D_g*E D_g*D_g]); dVdm = reshape(dVdm,[D_g*E D_g]);
 
 end
 

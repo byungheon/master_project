@@ -47,7 +47,7 @@ if nargout <= 2                                  % just predict, no derivatives
   return
 end
 
-angi = plant.angi; poli = plant.poli; dyni = plant.dyni; difi = plant.difi;
+angi = plant.angi; poli = plant.poli; dyni = plant.dyni; difi = plant.difi;dyni_p = plant.dyni_p;
 
 D0 = length(m);                                        % size of the input mean
 D1 = D0 + 2*length(angi);          % length after mapping all angles to sin/cos
@@ -81,7 +81,12 @@ i = poli; j = 1:D1; k = D1+1:D2;
   fillIn(S,C,mdm,sdm,Cdm,mds,sds,Cds,Mdm,Sdm,Mds,Sds,Mdp,Sdp,Cdp,i,j,k,D3);
 
 % 3) Compute distribution of the change in state ------------------------------
-ii = [dyni D1+1:D2]; j = 1:D2;
+if (isfield(dynmodel,'model')) && (~strcmp(dynmodel.model,'PILCO'))
+    ii = [dyni_p D1+1:D2]; 
+else
+    ii = [dyni D1+1:D2]; 
+end
+j = 1:D2;
 if isfield(dynmodel,'sub'), Nf = length(dynmodel.sub); else Nf = 1; end
 for n=1:Nf                               % potentially multiple dynamics models
   [dyn i k] = sliceModel(dynmodel,n,ii,D1,D2,D3); j = setdiff(j,k);

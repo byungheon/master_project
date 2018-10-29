@@ -22,6 +22,8 @@ x = [x; xx]; y = [y; yy];                            % augment training set
 if plotting.verbosity > 0
   if ~ishandle(3); figure(3); else set(0,'CurrentFigure',3); end
   hold on; plot(1:length(realCost{J+j}),realCost{J+j},'r'); drawnow;
+  figurename = ['data/' 'Figure_' basename dynmodel.model '_' num2str(j) '_H' num2str(H)];
+  savefig(3,figurename);
 end
 
 % 2. Make many rollouts to test the controller quality

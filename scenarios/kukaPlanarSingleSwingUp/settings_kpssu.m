@@ -54,7 +54,8 @@ rand('seed', 20); randn('state', 5);
 % augi  indicies for variables augmented to the ode variables
 % dyno  indicies for the output from the dynamics model and indicies to loss
 % angi  indicies for variables treated as angles (using sin/cos representation)
-% dyni  indicies for inputs to the dynamics model
+% dyni  indicies for inputs to the gp dynamics model
+% dyni_p indices for inputs to the whole dynamics model
 % poli  indicies for the inputs to the policy
 % difi  indicies for training targets that are differences (rather than values)
 
@@ -63,6 +64,7 @@ augi = [];
 dyno = [1 2 3 4 5 6];
 angi = [1 2 6];
 dyni = [3 4 5 7 8 9 10 11 12];
+dyni_p = [1 2 3 4 5 7 8 9 10 11 12];
 poli = [3 4 5 7 8 9 10 11 12];
 difi = [1 2 3 4 5 6];
 jointi = [1 2];
@@ -92,6 +94,7 @@ plant.poli = poli;
 plant.dyno = dyno;
 plant.dyni = dyni;
 plant.difi = difi;
+plant.dyni_p = dyni_p;
 plant.jointi = jointi;
 plant.prop = @propagated; % handle to function that propagates state over time
 plant.angstd = mu0(1:2);  % mid point of each joint angle (we need to wrap up each angle in midpoint - pi ~ midpoint + pi) 
@@ -120,7 +123,7 @@ cost.target = zeros(6,1);
 cost.target(6)  = pi;
 
 % 6. Set up the GP dynamics model structure
-dynmodel.model = 'PILCO';            % dynamics model: PILCO, PIREM, MINE
+dynmodel.model = 'MINE';            % dynamics model: PILCO, PIREM, MINE
 dynmodel.jointi = jointi;
 switch dynmodel.model
     case 'PILCO'

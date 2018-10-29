@@ -20,28 +20,16 @@ xaug = [xx(:,dyno) xx(:,end-Du-2*Da+1:end-Du)];     % x augmented with angles
 inputs_temp = [xaug(:,dyni) xx(:,end-Du+1:end)];     % use dyni and ctrl
 targets_temp = yy(:,dyno);
 targets_temp(:,difi) = targets_temp(:,difi) - xx(:,dyno(difi));
-
-% in_list = [];
-% for i = 1:size(targets_temp,1)-1
-%    tmpsign = sign(targets_temp(i,plant.jointi)).*sign((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
-%    tmpmag  = abs(targets_temp(i,plant.jointi)/dt)./ abs((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
-%    tmp = tmpsign.*(tmpmag <2.0).*(tmpmag>0.5);
-%    if  tmp>0
-% %        disp('----------------------');
-% %        disp(targets_temp(i,plant.jointi)/dt);
-% %        disp((inputs_temp(i,plant.jointi+length(plant.jointi))+inputs_temp(i+1,plant.jointi+length(plant.jointi)))/2);
-%        in_list = [in_list i];
-%    end
-% end
+joint_temp = xaug(:,[jointi length(jointi) + jointi]);
 if size(targets_temp,1) > 100
    disp('Random Sampling from obtained dynamic data');
    in_list = randsample(size(targets_temp,1),100);
-   
 end
 x(end - initial_length +1:end,:) = [];
 y(end - initial_length +1:end,:) = [];
 xx = xx(in_list,:);
 yy = yy(in_list,:);
+joint_temp = joint_temp(in_list,:);
 x = [x;xx];
 y = [y;yy];
 targets_temp    = targets_temp(in_list,:);
@@ -59,9 +47,9 @@ end
 
 if (isfield(dynmodel,'model') && ~strcmp(dynmodel.model,'PILCO'))
     delta           = zeros(size(dynmodel.targets));
-    delta(:,plant.jointi)    = dynmodel.inputs(:,plant.jointi+length(plant.jointi)) * dt;
+    delta(:,plant.jointi)    = joint_temp(:,end-length(jointi)+1:end) * dt;
     for i = 1:size(dynmodel.inputs,1)
-        delta(i,plant.jointi+length(plant.jointi)) = dt * solveForwardDynamics(dynmodel.robot.A,dynmodel.robot.M,dynmodel.inputs(i,plant.jointi)',dynmodel.inputs(i,plant.jointi+length(plant.jointi))',dynmodel.inputs(i,end-Du+1:end)',dynmodel.robot.G, dynmodel.Vdot0, dynmodel.robot.F);
+        delta(i,plant.jointi+length(plant.jointi)) = dt * solveForwardDynamics(dynmodel.robot.A,dynmodel.robot.M,joint_temp(i,1:length(jointi))',joint_temp(i,end-length(jointi)+1:end)',dynmodel.inputs(i,end-Du+1:end)',dynmodel.robot.G, dynmodel.Vdot0, dynmodel.robot.F);
     end
     dynmodel.targets = dynmodel.targets - delta;
 end

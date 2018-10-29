@@ -18,14 +18,13 @@
 % 1. Initialization
 clear all; close all;
 settings_kpssu;                 % load scenario-specific settings
-basename = 'KukaPlanarSingleSwingUp_Temp_'; % filename used for saving data
+basename = 'KukaPlanarSingleSwingUp_'; % filename used for saving data
 % 2. Initial J random rollouts
 for jj = 1:J
   [xx, yy, realCost{jj}, latent{jj}] = ...
     rollout(gaussian(mu0, S0), struct('maxU',policy.maxU), H, plant, cost, dynmodel);
   x = [x; xx]; y = [y; yy];       % augment training sets for dynamics model
   if plotting.verbosity > 0;      % visualization of trajectory
-    if ~ishandle(1); figure(1); else set(0,'CurrentFigure',1); end; clf(1);
     draw_rollout_kpssu; 
   end
 end
@@ -35,6 +34,8 @@ end
 % writetable(array2table(latent{jj}), 'latent.txt','Delimiter',',');
 % x = dlmread('x.txt');
 % y = dlmread('y.txt');
+% xx= x;
+% yy = y;
 % realCost{1} = dlmread('realCost.txt');
 % latent{1} = dlmread('latent.txt');
 % jj = 1;
