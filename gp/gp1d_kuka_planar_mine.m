@@ -211,6 +211,7 @@ for i = 1:D
     end
 end
 %% Robot Dynamics
+n_span  = gpmodel.n_span;
 D_D     = njoint*3;
 dynamics_list = [jointlist njoint + jointlist [D_g-njoint+1:D_g]];
 q       = m(jointlist);
@@ -218,16 +219,34 @@ qdot    = m(jointlist + njoint);
 tau     = m(end-njoint+1:end);
 
 for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
-[~, y] = ode45(dynamics, [0 gpmodel.stepsize/2 gpmodel.stepsize], m(1:(2*njoint)), OPTIONS, u0{:});
+[~, y] = ode45(dynamics, linspace(0,gpmodel.stepsize,n_span+1), m(1:(2*njoint)), OPTIONS, u0{:});
 
-% qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
-qddot = (y(3,jointlist + njoint)' - qdot)/gpmodel.stepsize;
-qdot  = (y(3,jointlist)' - q)/gpmodel.stepsize;
+% 
+qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
 [dqddotdq, dqddotdqdot, dqddotdtau, dqddotdqdq, dqddotdqdqdot, dqddotdqdtau, dqddotdqdotdqdot, dqddotdqdotdtau, dqddotdtaudtau] = ...
 solveForwardDynamicsSecondDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
-% [dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F);
+for i = 2:n_span
+    q_tmp       = y(i,jointlist)';
+    qdot_tmp    = y(i,jointlist + njoint)';
+    qddot_tmp   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q_tmp,qdot_tmp,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+    [dqddotdq_temp, dqddotdqdot_temp, dqddotdtau_temp, dqddotdqdq_temp, dqddotdqdqdot_temp, dqddotdqdtau_temp, dqddotdqdotdqdot_temp, dqddotdqdotdtau_temp, dqddotdtaudtau_temp] = ...
+        solveForwardDynamicsSecondDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q_tmp,qdot_tmp,qddot_tmp,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+    dqddotdq            = dqddotdq + dqddotdq_temp;
+    dqddotdqdot         = dqddotdqdot + dqddotdqdot_temp;
+    dqddotdtau          = dqddotdtau + dqddotdtau_temp;
+    dqddotdqdq          = dqddotdqdq + dqddotdqdq_temp;
+    dqddotdqdqdot       = dqddotdqdqdot + dqddotdqdqdot_temp;
+    dqddotdqdtau        = dqddotdqdtau + dqddotdqdtau_temp;
+    dqddotdqdotdqdot    = dqddotdqdotdqdot + dqddotdqdotdqdot_temp;
+    % no need to compute since it's zero anyway
+%     dqddotdqdotdtau     = dqddotdqdotdtau + dqddotdqdotdtau_temp; 
+%     dqddotdtaudtau      = dqddotdtaudtau + dqddotdtaudtau_temp;
+end
+dqddotdq            = dqddotdq * gpmodel.stepsize/n_span;
+dqddotdqdot         = dqddotdqdot * gpmodel.stepsize/n_span;
+dqddotdtau          = dqddotdtau * gpmodel.stepsize/n_span;
 
-
+% 
 dFDdqdq         = zeros(njoint,njoint,njoint);
 dFDdqdotdq      = zeros(njoint,njoint,njoint);
 dFDdtaudq       = zeros(njoint,njoint,njoint);
@@ -240,46 +259,45 @@ dFDdtaudtau     = zeros(njoint,njoint,njoint);
 
 for i = 1:njoint
     for j = 1:njoint
-        dFDdqdq(:,j,i)      = dqddotdqdq(:,(j-1)*njoint+i);
-        dFDdqdqdot(:,j,i)   = dqddotdqdqdot(:,(j-1)*njoint+i);
-        dFDdqdtau(:,j,i)    = dqddotdqdtau(:,(j-1)*njoint+i);
+        dFDdqdq(:,j,i)      = dqddotdqdq(:,(j-1)*njoint+i) * gpmodel.stepsize/n_span;
+        dFDdqdqdot(:,j,i)   = dqddotdqdqdot(:,(j-1)*njoint+i) * gpmodel.stepsize/n_span;
+        dFDdqdtau(:,j,i)    = dqddotdqdtau(:,(j-1)*njoint+i) * gpmodel.stepsize/n_span;
 
-        dFDdqdotdq(:,j,i)       = dqddotdqdqdot(:,(i-1)*njoint+j);
-        dFDdqdotdqdot(:,j,i)    = dqddotdqdotdqdot(:,(j-1)*njoint+i);
-        dFDdqdotdtau(:,j,i)     = dqddotdqdotdtau(:,(j-1)*njoint+i);
+        dFDdqdotdq(:,j,i)       = dqddotdqdqdot(:,(i-1)*njoint+j) * gpmodel.stepsize/n_span;
+        dFDdqdotdqdot(:,j,i)    = dqddotdqdotdqdot(:,(j-1)*njoint+i) * gpmodel.stepsize/n_span;
+        dFDdqdotdtau(:,j,i)     = dqddotdqdotdtau(:,(j-1)*njoint+i) * gpmodel.stepsize/n_span;
         
-        dFDdtaudq(:,i,j)        = dqddotdqdtau(:,(j-1)*njoint+i);
-        dFDdtaudqdot(:,i,j)     = dqddotdqdotdtau(:,(j-1)*njoint+i);
-        dFDdtaudtau(:,j,i)      = dqddotdtaudtau(:,(j-1)*njoint+i);
+        dFDdtaudq(:,i,j)        = dqddotdqdtau(:,(j-1)*njoint+i) * gpmodel.stepsize/n_span;
+        dFDdtaudqdot(:,i,j)     = dqddotdqdotdtau(:,(j-1)*njoint+i) * gpmodel.stepsize/n_span;
+        dFDdtaudtau(:,j,i)      = dqddotdtaudtau(:,(j-1)*njoint+i) * gpmodel.stepsize/n_span;
     end
 end
 
-M(jointlist)            = M(jointlist) + qdot * gpmodel.stepsize;
-M(jointlist + njoint)   = M(jointlist + njoint) + qddot * gpmodel.stepsize;
+M(jointlist)            = M(jointlist) + (y(n_span+1,jointlist)' - q);
+M(jointlist + njoint)   = M(jointlist + njoint) + (y(n_span+1,jointlist + njoint)' - qdot);
 
 A                                        = zeros(E,D_D);
 A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
-A(jointlist + njoint,jointlist)          = dqddotdq * gpmodel.stepsize;
-A(jointlist + njoint,jointlist + njoint) = dqddotdqdot * gpmodel.stepsize;
-A(jointlist + njoint,end-njoint+1:end)   = dqddotdtau * gpmodel.stepsize;
+A(jointlist + njoint,jointlist)          = dqddotdq;
+A(jointlist + njoint,jointlist + njoint) = dqddotdqdot;
+A(jointlist + njoint,end-njoint+1:end)   = dqddotdtau;
 
 dAdm = zeros(E,D_D,D_D);
 for i = 1:njoint
-    dAdm(jointlist + njoint,jointlist,i)                = dFDdqdq(:,:,i) * gpmodel.stepsize;
-    dAdm(jointlist + njoint,jointlist + njoint,i)       = dFDdqdotdq(:,:,i) * gpmodel.stepsize;
-    dAdm(jointlist + njoint,end-njoint+1:end,i)         = dFDdtaudq(:,:,i) * gpmodel.stepsize;   
+    dAdm(jointlist + njoint,jointlist,i)                = dFDdqdq(:,:,i);
+    dAdm(jointlist + njoint,jointlist + njoint,i)       = dFDdqdotdq(:,:,i);
+    dAdm(jointlist + njoint,end-njoint+1:end,i)         = dFDdtaudq(:,:,i);   
 end
 for i = 1:njoint
-    dAdm(jointlist + njoint,jointlist,i+njoint)             = dFDdqdqdot(:,:,i) * gpmodel.stepsize;
-    dAdm(jointlist + njoint,jointlist + njoint,i+njoint)    = dFDdqdotdqdot(:,:,i) * gpmodel.stepsize;
-    dAdm(jointlist + njoint,end-njoint+1:end,i+njoint)      = dFDdtaudqdot(:,:,i) * gpmodel.stepsize;   
+    dAdm(jointlist + njoint,jointlist,i+njoint)             = dFDdqdqdot(:,:,i);
+    dAdm(jointlist + njoint,jointlist + njoint,i+njoint)    = dFDdqdotdqdot(:,:,i);
+    dAdm(jointlist + njoint,end-njoint+1:end,i+njoint)      = dFDdtaudqdot(:,:,i);   
 end
 for i = 1:njoint
-    dAdm(jointlist + njoint,jointlist,i+end-njoint)             = dFDdqdtau(:,:,i) * gpmodel.stepsize;
-    dAdm(jointlist + njoint,jointlist + njoint,i+end-njoint)    = dFDdqdotdtau(:,:,i) * gpmodel.stepsize;
-    dAdm(jointlist + njoint,end-njoint+1:end,i+end-njoint)      = dFDdtaudtau(:,:,i) * gpmodel.stepsize;   
+    dAdm(jointlist + njoint,jointlist,i+end-njoint)             = dFDdqdtau(:,:,i);
+    dAdm(jointlist + njoint,jointlist + njoint,i+end-njoint)    = dFDdqdotdtau(:,:,i);
+    dAdm(jointlist + njoint,end-njoint+1:end,i+end-njoint)      = dFDdtaudtau(:,:,i);   
 end
-
 %% converting Dynamics variables to global
 invscovsx = zeros(D_g,D_D);
 invscovsx(dynamics_list,1:end) = eye(D_D);

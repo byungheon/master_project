@@ -124,7 +124,8 @@ cost.target(6)  = pi;
 
 % 6. Set up the GP dynamics model structure
 dynmodel.model = 'MINE';            % dynamics model: PILCO, PIREM, MINE
-dynmodel.jointi = jointi;
+dynmodel.jointi = jointi;     % robot joint index 
+dynmodel.n_span = 100;        % number of lin space for derivative compensation
 switch dynmodel.model
     case 'PILCO'
         dynmodel.fcn = @gp1d;
