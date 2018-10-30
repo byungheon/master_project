@@ -292,7 +292,10 @@ end
 V_gp = V;
 V = V + V_dyn;
 
-S = S + A * s(dynamics_list,dynamics_list) * (A') + V_dyn' * s * V_gp; 
+tmpS = V_dyn' * s * V_gp; 
+
+S = S + A * s(dynamics_list,dynamics_list) * (A') + tmpS + tmpS';
+S = (S + S')/2;
 
 Asigma_t = V_dyn' * s;
 
@@ -311,14 +314,14 @@ for i = 1:D_g
 end
 dAcovdm = zeros(E,E,D_g);
 Adcovds = zeros(E,E,D_g,D_g);
-dSDds   = zeros(E,E,D_g,D_g);
+% dSDds   = zeros(E,E,D_g,D_g);
 dVDds   = zeros(D_g,E,D_g,D_g);
 for i = 1:D_g
    tempmat = zeros(E,E);
    for j = 1:D_g
       tempmatdVD        = zeros(D_g,E);
       tempmatdVD(i,:)   = A_g(:,j)';
-      dSDds(:,:,i,j)    = A_g(:,i) * (A_g(:,j)');
+%       dSDds(:,:,i,j)    = A_g(:,i) * (A_g(:,j)');
       Adcovds(:,:,i,j)  = Asigma_t * dVds_g(:,:,i,j);  
       dVDds(:,:,i,j)    = s \ tempmatdVD;
       for k =1:E
@@ -331,16 +334,23 @@ end
 
 dMdm = dMdm_g + A_g;
 dMds = dMds_g;
-dSdm = dSdm_g + dSDdm + dAcovdm;
-dSds = dSds_g + dSDds + Adcovds;
+dSdm = dSdm_g + dSDdm + dAcovdm + permute(dAcovdm,[2,1,3]);
+dSds = dSds_g + Adcovds + permute(Adcovds,[2,1,3,4]);
 dVdm = dVdm_g + dVdyndm_g;
 dVds = dVds_g + dVDds;
 %%
 % 5) vectorize derivatives
 dMds = reshape(dMds,[E D_g*D_g]);
-dSds = reshape(dSds,[E*E D_g*D_g]); dSdm = reshape(dSdm,[E*E D_g]);
-dVds = reshape(dVds,[D_g*E D_g*D_g]); dVdm = reshape(dVdm,[D_g*E D_g]);
+dSds = reshape(dSds,[E*E D_g*D_g]) + kron(A_g,A_g); % kron(A_g,A_g) == dSDds
+dSdm = reshape(dSdm,[E*E D_g]);
+dVds = reshape(dVds,[D_g*E D_g*D_g]);
+dVdm = reshape(dVdm,[D_g*E D_g]);
 
+% 6) symmetrize variables dependent to variance
+X=reshape(1:D_g*D_g,[D_g D_g]); XT=X'; dSds=(dSds+dSds(:,XT(:)))/2; 
+dMds=(dMds+dMds(:,XT(:)))/2;
+X=reshape(1:E*E,[E E]); XT=X'; dSds=(dSds+dSds(XT(:),:))/2;
+dSdm=(dSdm+dSdm(XT(:),:))/2; 
 end
 
 function u = zoh(f, t, par) % **************************** zero-order hold

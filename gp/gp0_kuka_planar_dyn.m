@@ -153,9 +153,12 @@ V_dyn     = invscovsx * (A'); % D_g x E
 
 %%
 
-S = S + A * s(dynamics_list,dynamics_list) * (A') + V_dyn' * s * V; 
+tmpS = V_dyn' * s * V; 
+S = S + A * s(dynamics_list,dynamics_list) * (A') + tmpS + tmpS';
+S = (S + S')/2;
 
 V = V + V_dyn;
+
 end
 function u = zoh(f, t, par) % **************************** zero-order hold
 d = par.delay;
