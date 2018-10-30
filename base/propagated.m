@@ -42,7 +42,6 @@
 function [Mnext, Snext, dMdm, dSdm, dMds, dSds, dMdp, dSdp] = ...
   propagated(m, s, plant, dynmodel, policy)
 %% Code
-tic
 if nargout <= 2                                  % just predict, no derivatives
   [Mnext, Snext] = propagate(m, s, plant, dynmodel, policy);
   return
@@ -60,7 +59,7 @@ Mdm = [eye(D0); zeros(D3-D0,D0)]; Sdm = zeros(D3*D3,D0);
 Mds = zeros(D3,D0*D0); Sds = kron(Mdm,Mdm);
 X = reshape(1:D3*D3,[D3 D3]); XT = X'; Sds = (Sds + Sds(XT(:),:))/2;
 X = reshape(1:D0*D0,[D0 D0]); XT = X'; Sds = (Sds + Sds(:,XT(:)))/2;
-toc
+
 % 1) Augment state distribution with trigonometric functions ------------------
 i = 1:D0; j = 1:D0; k = D0+1:D1;
 [M(k) S(k,k) C mdm sdm Cdm mds sds Cds] = gTrig(M(i), S(i,i), angi);
@@ -72,7 +71,7 @@ i = 1:D0; j = 1:D0; k = D0+1:D1;
 mm=zeros(D1,1); mm(i)=M(i); ss(i,i)=S(i,i);%+diag(sn2);
 [mm(k), ss(k,k) C] = gTrig(mm(i), ss(i,i), angi);     % noisy state measurement
 q = ss(j,i)*C; ss(j,k) = q; ss(k,j) = q';
-toc
+
 % 2) Compute distribution of the control signal -------------------------------
 i = poli; j = 1:D1; k = D1+1:D2;
 [M(k) S(k,k) C mdm sdm Cdm mds sds Cds Mdp Sdp Cdp] = ...
@@ -80,7 +79,7 @@ i = poli; j = 1:D1; k = D1+1:D2;
 
 [S Mdm Mds Sdm Sds Mdp Sdp] = ...
   fillIn(S,C,mdm,sdm,Cdm,mds,sds,Cds,Mdm,Sdm,Mds,Sds,Mdp,Sdp,Cdp,i,j,k,D3);
-toc
+
 % 3) Compute distribution of the change in state ------------------------------
 if (isfield(dynmodel,'model')) && (~strcmp(dynmodel.model,'PILCO'))
     ii = [dyni_p D1+1:D2]; 
@@ -99,7 +98,7 @@ for n=1:Nf                               % potentially multiple dynamics models
   
   j = [j k];                                   % update 'previous' state vector
 end
-toc
+
 % 4) Compute distribution of the next state -----------------------------------
 P = [zeros(D0,D2) eye(D0)]; P(difi,difi) = eye(length(difi));  P = sparse( P);
 Mnext = P*M; Snext = P*S*P'; Snext = (Snext+Snext')/2;
@@ -114,8 +113,7 @@ X = reshape(1:D0*D0,[D0 D0]); XT = X';                          % symmetrize dS
 dSdm = (dSdm + dSdm(XT(:),:))/2; dMds = (dMds + dMds(:,XT(:)))/2;
 dSds = (dSds + dSds(XT(:),:))/2; dSds = (dSds + dSds(:,XT(:)))/2;
 dSdp = (dSdp + dSdp(XT(:),:))/2;
-toc
-disp('------------------');
+
 % A1) Separate multiple dynamics models ---------------------------------------
 function [dyn i k] = sliceModel(dynmodel,n,ii,D1,D2,D3) % separate sub-dynamics
 if isfield(dynmodel,'sub')
