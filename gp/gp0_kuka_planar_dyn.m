@@ -132,11 +132,12 @@ for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
 [~, y] = ode45(dynamics, [0 gpmodel.stepsize/2 gpmodel.stepsize], m(1:(2*njoint)), OPTIONS, u0{:});
 
 % qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+qdot  = (y(3,jointlist)' - q)/gpmodel.stepsize;
 qddot = (y(3,jointlist + njoint)' - qdot)/gpmodel.stepsize;
 [dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F);
 
-M(jointlist)            = M(jointlist) + (y(3,jointlist)' - q);
-M(jointlist + njoint)   = M(jointlist + njoint) + (y(3,jointlist + njoint)' - qdot);
+M(jointlist)            = M(jointlist) + qdot * gpmodel.stepsize;
+M(jointlist + njoint)   = M(jointlist + njoint) + qddot * gpmodel.stepsize;
 
 A                                        = zeros(E,D_D);
 A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;

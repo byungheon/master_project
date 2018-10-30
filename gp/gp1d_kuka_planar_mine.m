@@ -222,9 +222,12 @@ for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
 
 % qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
 qddot = (y(3,jointlist + njoint)' - qdot)/gpmodel.stepsize;
+qdot  = (y(3,jointlist)' - q)/gpmodel.stepsize;
 [dqddotdq, dqddotdqdot, dqddotdtau, dqddotdqdq, dqddotdqdqdot, dqddotdqdtau, dqddotdqdotdqdot, dqddotdqdotdtau, dqddotdtaudtau] = ...
 solveForwardDynamicsSecondDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
-% 
+% [dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F);
+
+
 dFDdqdq         = zeros(njoint,njoint,njoint);
 dFDdqdotdq      = zeros(njoint,njoint,njoint);
 dFDdtaudq       = zeros(njoint,njoint,njoint);
@@ -251,8 +254,8 @@ for i = 1:njoint
     end
 end
 
-M(jointlist)            = M(jointlist) + (y(3,jointlist)' - q);
-M(jointlist + njoint)   = M(jointlist + njoint) + (y(3,jointlist + njoint)' - qdot);
+M(jointlist)            = M(jointlist) + qdot * gpmodel.stepsize;
+M(jointlist + njoint)   = M(jointlist + njoint) + qddot * gpmodel.stepsize;
 
 A                                        = zeros(E,D_D);
 A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
@@ -288,7 +291,7 @@ for i = 1:D_D
     dVdyndm_g(:,:,dynamics_list(i)) = invscovsx * (dAdm(:,:,i)');
 end
 
-%%
+%
 V_gp = V;
 V = V + V_dyn;
 
@@ -351,6 +354,13 @@ X=reshape(1:D_g*D_g,[D_g D_g]); XT=X'; dSds=(dSds+dSds(:,XT(:)))/2;
 dMds=(dMds+dMds(:,XT(:)))/2;
 X=reshape(1:E*E,[E E]); XT=X'; dSds=(dSds+dSds(XT(:),:))/2;
 dSdm=(dSdm+dSdm(XT(:),:))/2; 
+
+% dMdm = dMdm_g + A_g;
+% dMds = reshape(dMds_g,[E D_g*D_g]);
+% dSds = reshape(dSds_g,[E*E D_g*D_g]);
+% dSdm = reshape(dSdm_g,[E*E D_g]);
+% dVds = reshape(dVds_g,[D_g*E D_g*D_g]);
+% dVdm = reshape(dVdm_g,[D_g*E D_g]);
 end
 
 function u = zoh(f, t, par) % **************************** zero-order hold
