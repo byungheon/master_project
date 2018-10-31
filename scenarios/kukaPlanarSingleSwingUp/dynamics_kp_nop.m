@@ -24,7 +24,7 @@ function dz = dynamics_kp_nop(t,z,f1,f2)
 % set up the system
 persistent robot_kuka_planar_nop;
 if isempty(robot_kuka_planar_nop)
-   disp("robot initial construction");
+   disp('robot initial construction');
    robot_kuka_planar_nop = makeKukaR820_planar_prior;
 end
 Vdot_0 = zeros(6,1); Vdot_0(6) = 0;

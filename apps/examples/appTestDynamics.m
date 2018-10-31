@@ -32,7 +32,7 @@ dqddot = rand(n,m,n);
 dY = getRegressorDerivativesRecursive(A,M,q,V,Vdot,dq,dV,dVdot,W);
 
 %% Forward Dynamics
-disp(" ")
+disp(' ')
 
 % tic
 % for i = 1:1000

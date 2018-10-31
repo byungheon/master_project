@@ -27,7 +27,7 @@ function dz = dynamics_kpssu(t,z,f1,f2)
 % set up the system
 persistent robot_simul;
 if(~isfield(robot_simul, 'A'))
-   disp("robot initial construction");
+   disp('robot initial construction');
    robot_simul = makeKukaR820_planar();
 end
 Vdot_0 = zeros(6,1); Vdot_0(6) = 9.82;
