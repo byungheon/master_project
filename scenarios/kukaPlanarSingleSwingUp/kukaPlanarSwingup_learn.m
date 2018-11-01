@@ -18,7 +18,11 @@
 % 1. Initialization
 clear all; close all;
 settings_kpssu;                 % load scenario-specific settings
+<<<<<<< HEAD
 basename = 'KukaSwingUp_No2Derivative_'; % filename used for saving data
+=======
+basename = 'KukaSwingUp_'; % filename used for saving data
+>>>>>>> e70c0ef00885dd1c88f16c185d1cdf83a7cba003
 % 2. Initial J random rollouts
 for jj = 1:J
   [xx, yy, realCost{jj}, latent{jj}] = ...
