@@ -75,6 +75,7 @@ function robot = makeKukaR820_planar_prior()
     F = [0.335546 0.181378;0.161421 0.355506;0.083204 0.144099; 0.206558 0.070046; 0.085193 0.040282; 0.101937 0.136860;0.02 0.02];
     F(:,1) = zeros(7,1);
     robot.F = F([2,4],:);
+%     robot.F = zeros(2,2);
     robot.Sigmoid = 100 * ones(robot.dof,1);
 
 end

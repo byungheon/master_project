@@ -27,8 +27,10 @@ function [dqddotdq, dqddotdqdot, dqddotdtau, dqddotdqdq, dqddotdqdqdot, dqddotdq
     elseif nargin == 7         % optional base acceleration
         Vdot_0 = varargin{1};        
     elseif nargin == 8
+        Vdot_0 = varargin{1}; 
         Friction = varargin{2};
     elseif nargin == 9
+        Vdot_0 = varargin{1}; 
         Friction = varargin{2};
         Sigmoid  = varargin{3};
     else
@@ -50,8 +52,8 @@ function [dqddotdq, dqddotdqdot, dqddotdtau, dqddotdqdq, dqddotdqdqdot, dqddotdq
     
     %% Forward Dynamics First Derivative
     dqddotdtau = pinv(dtaudqddot);
-    dqddotdq    = -dqddotdtau * dtaudq;
-    dqddotdqdot = -dqddotdtau * dtaudqdot;
+    dqddotdq    = -dtaudqddot \ dtaudq;
+    dqddotdqdot = -dtaudqddot \ dtaudqdot;
     %% Forward Dynamics Second Derivative
     dqddotdqdq          = zeros(n, n*n);
     dqddotdqdqdot       = zeros(n, n*n);
@@ -64,16 +66,24 @@ function [dqddotdq, dqddotdqdot, dqddotdtau, dqddotdqdq, dqddotdqdqdot, dqddotdq
        for j = 1:n
            dqddotdqdq(:,(i-1) * n + j)          = dtaudqdq(:,(i-1) * n + j);
            dqddotdqdqdot(:,(i-1) * n + j)       = dtaudqdqdot(:,(i-1) * n + j);
+           dqddotdqdtau(:,(i-1) * n + j)        = zeros(n,1);
            dqddotdqdotdqdot(:,(i-1) * n + j)    = dtaudqdotdqdot(:,(i-1) * n + j);
            for k = 1:n
-              dqddotdqdq(:,(i-1) * n + j)       = dqddotdqdq(:,(i-1) * n + j) + 2 * dtaudqdqddot(:,(i-1) * n + k) * dqddotdq(k, j);
+              if j == i
+                  dqddotdqdq(:,(i-1) * n + j)       = dqddotdqdq(:,(i-1) * n + j) + 2 * dtaudqdqddot(:,(i-1) * n + k) * dqddotdq(k, j);
+              elseif j>i
+                  dqddotdqdq(:,(i-1) * n + j)       = dqddotdqdq(:,(i-1) * n + j) + 1 * dtaudqdqddot(:,(j-1) * n + k) * dqddotdq(k, i);
+              else
+                  dqddotdqdq(:,(i-1) * n + j)       = dqddotdqdq(:,(i-1) * n + j) + 1 * dtaudqdqddot(:,(i-1) * n + k) * dqddotdq(k, j);
+              end
+              
               dqddotdqdqdot(:,(i-1) * n + j)    = dqddotdqdqdot(:,(i-1) * n + j) + dtaudqdqddot(:,(i-1) * n + k) * dqddotdqdot(k, j);
               dqddotdqdtau(:,(i-1) * n + j)     = dqddotdqdtau(:,(i-1) * n + j) + dtaudqdqddot(:,(i-1) * n + k) * dqddotdtau(k, j); 
            end
-           dqddotdqdq(:,(i-1) * n + j)          = -dqddotdtau * dqddotdqdq(:,(i-1) * n + j);
-           dqddotdqdqdot(:,(i-1) * n + j)       = -dqddotdtau * dqddotdqdqdot(:,(i-1) * n + j);
-           dqddotdqdtau(:,(i-1) * n + j)        = -dqddotdtau * dqddotdqdtau(:,(i-1) * n + j);
-           dqddotdqdotdqdot(:,(i-1) * n + j)    = -dqddotdtau * dqddotdqdotdqdot(:,(i-1) * n + j);
+           dqddotdqdq(:,(i-1) * n + j)          = -dtaudqddot \ dqddotdqdq(:,(i-1) * n + j);
+           dqddotdqdqdot(:,(i-1) * n + j)       = -dtaudqddot \ dqddotdqdqdot(:,(i-1) * n + j);
+           dqddotdqdtau(:,(i-1) * n + j)        = -dtaudqddot \ dqddotdqdtau(:,(i-1) * n + j);
+           dqddotdqdotdqdot(:,(i-1) * n + j)    = -dtaudqddot \ dqddotdqdotdqdot(:,(i-1) * n + j);
        end
     end
 end

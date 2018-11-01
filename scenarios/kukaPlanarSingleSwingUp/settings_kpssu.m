@@ -30,7 +30,7 @@ warning('off','all'); format short; format compact
 % end
 
 % fix the random seed to be able to re-run the experiment
-rand('seed', 20); randn('state', 5); 
+rand('seed', 15); randn('state', 2); 
 
 
 % 1. Define state and important indices

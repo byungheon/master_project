@@ -27,8 +27,10 @@ function [dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_p
     elseif nargin == 7         % optional base acceleration
         Vdot_0 = varargin{1};        
     elseif nargin == 8
+        Vdot_0 = varargin{1};
         Friction = varargin{2};
     elseif nargin == 9
+        Vdot_0 = varargin{1};
         Friction = varargin{2};
         Sigmoid  = varargin{3};
     else
@@ -46,10 +48,10 @@ function [dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_p
         [~, T, V, Vdot, F] = solveInverseDynamics(A,M,q,qdot,qddot,G, Vdot_0);
         [dtaudq, dtaudqdot, dtaudqddot] = solveInverseDynamicsDerivatives_pilco(A,M,q,qdot,G,T,V,Vdot,F,Vdot_0);
     end
-
+    
     %% Forward Dynamics First Derivative
     dqddotdtau = pinv(dtaudqddot);
-    dqddotdq    = -dqddotdtau * dtaudq;
-    dqddotdqdot = -dqddotdtau * dtaudqdot;
+    dqddotdq    = -dtaudqddot \ dtaudq;
+    dqddotdqdot = -dtaudqddot \ dtaudqdot;
     
 end
