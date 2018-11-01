@@ -24,7 +24,7 @@ function dz = dynamics_kuka_6dof(t,z,f1,f2,f3,f4,f5,f6)
 % set up the system
 persistent robot_kuka_6dof;
 if(~isfield(robot_kuka_6dof, 'A'))
-   disp("robot initial construction");
+   disp('robot initial construction');
    robot_kuka_6dof = makeKukaR820_prior;
 end
 Vdot_0 = zeros(6,1); Vdot_0(6) = 0;

@@ -33,8 +33,7 @@ tic
 
 toc
 %%
-tic
-for i =1 :100
+
     [dqddotdq, dqddotdqdot, dqddotdtau, dqddotdqdq, dqddotdqdqdot, dqddotdqdtau, dqddotdqdotdqdot, dqddotdqdotdtau, dqddotdtaudtau] = solveForwardDynamicsSecondDerivatives_pilco(A,M,q,qdot,qddot,G,vdot_0);
-end
-toc
+
+

@@ -210,7 +210,9 @@ for i = 1:D
          dVds_g(:,:,gp_list(i),gp_list(j)) = invscovsx * dVds(:,:,i,j);
     end
 end
-% %% Robot Dynamics
+
+%% Robot Dynamics
+
 n_span  = gpmodel.n_span;
 D_D     = njoint*3;
 dynamics_list = [jointlist njoint + jointlist [D_g-njoint+1:D_g]];
@@ -309,7 +311,6 @@ for i = 1:D_D
     dVdyndm_g(:,:,dynamics_list(i)) = invscovsx * (dAdm(:,:,i)');
 end
 
-%
 V_gp = V;
 V = V + V_dyn;
 
@@ -333,12 +334,14 @@ for i = 1:D_g
        dSDdAT(:,:,i,j)  = temp_sigma;
    end
 end
+
 dAcovdm = zeros(E,E,D_g);
 Adcovds = zeros(E,E,D_g,D_g);
 % dSDds   = zeros(E,E,D_g,D_g);
 dVDds   = zeros(D_g,E,D_g,D_g);
 for i = 1:D_g
    tempmat = zeros(E,E);
+
    for j = 1:D_g
       tempmatdVD        = zeros(D_g,E);
       tempmatdVD(i,:)   = A_g(:,j)';
@@ -351,6 +354,7 @@ for i = 1:D_g
    end
    dSDdm(:,:,i)     = tempmat;
    dAcovdm(:,:,i)   = dVdyndm_g(:,:,i)' * cov + Asigma_t * dVdm_g(:,:,i);
+
 end
 
 dMdm = dMdm_g + A_g;
@@ -360,6 +364,7 @@ dSds = dSds_g + Adcovds + permute(Adcovds,[2,1,3,4]);
 dVdm = dVdm_g + dVdyndm_g;
 dVds = dVds_g + dVDds;
 %%
+
 % 5) vectorize derivatives
 dMds = reshape(dMds,[E D_g*D_g]);
 dSds = reshape(dSds,[E*E D_g*D_g]) + kron(A_g,A_g); % kron(A_g,A_g) == dSDds
@@ -418,6 +423,7 @@ dSdm=(dSdm+dSdm(XT(:),:))/2;
 % V_dyn     = invscovsx * (A'); % D_g x E
 % A_g         = V_dyn';
 % 
+
 % dMdm = dMdm_g + A_g;
 % dMds = reshape(dMds_g,[E D_g*D_g]);
 % dSds = reshape(dSds_g,[E*E D_g*D_g]);
