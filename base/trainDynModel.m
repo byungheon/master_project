@@ -25,20 +25,22 @@ targets_temp(:,difi) = targets_temp(:,difi) - xx(:,dyno(difi));
 joint_temp = xaug(:,[jointi length(jointi) + jointi]);
 
 if (isfield(dynmodel,'model') && ~strcmp(dynmodel.model,'PILCO'))
-    local.dynamics    = @dynamics_kp_nop;
-    local.OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
-    local.ctrlfcn     = str2func('zoh_local');   
-    local.par.dt      = dt; local.par.delay = 0; local.par.tau = dt;
-    local.u0          = cell(1,length(jointi));
+%     local.dynamics    = @dynamics_kp_nop;
+%     local.OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
+%     local.ctrlfcn     = str2func('zoh_local');   
+%     local.par.dt      = dt; local.par.delay = 0; local.par.tau = dt;
+%     local.u0          = cell(1,length(jointi));
     local.delta       = zeros(1,length(difi));
     for i = 1:size(targets_temp,1)
         local.tau = inputs_temp(i,end-Du+1:end)';
         
-        for ii = 1:length(jointi), local.u0{ii} = @(t)local.ctrlfcn(local.tau(ii,:),t,local.par); end
-        [~, local.y] = ode45(local.dynamics, [0 dt/2 dt], joint_temp(i,:)', local.OPTIONS, local.u0{:});
-        
-        local.qdotdelt  = local.y(3,jointi) - joint_temp(i,jointi);
-        local.qddotdelt = local.y(3,jointi + length(jointi)) - joint_temp(i,jointi + length(jointi));
+%         for ii = 1:length(jointi), local.u0{ii} = @(t)local.ctrlfcn(local.tau(ii,:),t,local.par); end
+%         [~, local.y] = ode45(local.dynamics, [0 dt/2 dt], joint_temp(i,:)', local.OPTIONS, local.u0{:});
+        local.qddot     = solveForwardDynamics(dynmodel.robot.A,dynmodel.robot.M,joint_temp(i,jointi)',joint_temp(i,length(jointi) + jointi)',local.tau,dynmodel.robot.G,dynmodel.Vdot0, dynmodel.robot.F);        
+        local.qdotdelt  = joint_temp(i,length(jointi) + jointi) * dt;
+        local.qddotdelt = local.qddot' * dt;
+%         local.qdotdelt  = local.y(3,jointi) - joint_temp(i,jointi);
+%         local.qddotdelt = local.y(3,jointi + length(jointi)) - joint_temp(i,jointi + length(jointi));
        
         local.delta(plant.jointi)           = local.qdotdelt;
         local.delta(jointi+length(jointi))  = local.qddotdelt;

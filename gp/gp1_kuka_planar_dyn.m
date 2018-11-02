@@ -128,49 +128,52 @@ end
 S = S - M*M';     
 
 %% Initialization for robot dynamics
-persistent dynamics OPTIONS ctrlfcn u0 par jointlist njoint;
-if isempty(dynamics)
-    dynamics    = @dynamics_kp_nop;
-    OPTIONS     = odeset('RelTol', 1e-2, 'AbsTol', 1e-2);
-    ctrlfcn     = str2func('zoh');   
-    par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
+persistent jointlist njoint; % dynamics OPTIONS ctrlfcn u0 par 
+if isempty(jointlist)
+%     dynamics    = @dynamics_kp_nop;
+%     OPTIONS     = odeset('RelTol', 1e-2, 'AbsTol', 1e-2);
+%     ctrlfcn     = str2func('zoh');   
+%     par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
     jointlist   = gpmodel.jointi;
     njoint      = length(jointlist);
-    u0          = cell(1,njoint);
+%     u0          = cell(1,njoint);
 end
 %% converting GP variables to global
 % M,S,V
 invscovsx = [zeros(njoint,D);eye(D,D)] ;
 V = invscovsx * V;
 %% Robot Dynamics
-n_span  = gpmodel.n_span;
+% n_span  = gpmodel.n_span;
 D_D     = njoint*3;
 dynamics_list = [jointlist njoint + jointlist [D_g-njoint+1:D_g]];
 q       = m(jointlist);
 qdot    = m(jointlist + njoint);
 tau     = m(end-njoint+1:end);
 
-for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
-[~, y] = ode45(dynamics, linspace(0,gpmodel.stepsize,n_span+1), m(1:(2*njoint)), OPTIONS, u0{:});
+% for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
+% [~, y] = ode45(dynamics, linspace(0,gpmodel.stepsize,n_span+1), m(1:(2*njoint)), OPTIONS, u0{:});
 
 qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
 [dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F);
-for i = 2:n_span
-    q_tmp       = y(i,jointlist)';
-    qdot_tmp    = y(i,jointlist + njoint)';
-    qddot_tmp   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q_tmp,qdot_tmp,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
-    [dqddotdq_temp, dqddotdqdot_temp, dqddotdtau_temp] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q_tmp,qdot_tmp,qddot_tmp,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
-    
-    dqddotdq            = dqddotdq + dqddotdq_temp;
-    dqddotdqdot         = dqddotdqdot + dqddotdqdot_temp;
-    dqddotdtau          = dqddotdtau + dqddotdtau_temp;
-end
-dqddotdq            = dqddotdq * gpmodel.stepsize/n_span;
-dqddotdqdot         = dqddotdqdot * gpmodel.stepsize/n_span;
-dqddotdtau          = dqddotdtau * gpmodel.stepsize/n_span;
+% for i = 2:n_span
+%     q_tmp       = y(i,jointlist)';
+%     qdot_tmp    = y(i,jointlist + njoint)';
+%     qddot_tmp   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q_tmp,qdot_tmp,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+%     [dqddotdq_temp, dqddotdqdot_temp, dqddotdtau_temp] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q_tmp,qdot_tmp,qddot_tmp,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+%     
+%     dqddotdq            = dqddotdq + dqddotdq_temp;
+%     dqddotdqdot         = dqddotdqdot + dqddotdqdot_temp;
+%     dqddotdtau          = dqddotdtau + dqddotdtau_temp;
+% end
+% dqddotdq            = dqddotdq * gpmodel.stepsize/n_span;
+% dqddotdqdot         = dqddotdqdot * gpmodel.stepsize/n_span;
+% dqddotdtau          = dqddotdtau * gpmodel.stepsize/n_span;
+dqddotdq            = dqddotdq * gpmodel.stepsize;
+dqddotdqdot         = dqddotdqdot * gpmodel.stepsize;
+dqddotdtau          = dqddotdtau * gpmodel.stepsize;
 
-M(jointlist)            = M(jointlist) + (y(n_span+1,jointlist)' - q);
-M(jointlist + njoint)   = M(jointlist + njoint) + (y(n_span+1,jointlist + njoint)' - qdot);
+M(jointlist)            = M(jointlist) + qdot * gpmodel.stepsize;
+M(jointlist + njoint)   = M(jointlist + njoint) + qddot * gpmodel.stepsize;
 
 A                                        = zeros(E,D_D);
 A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
@@ -186,6 +189,7 @@ V_dyn     = invscovsx * (A'); % D_g x E
 
 
 %%
+
 tmpS = V_dyn' * s * V; 
 S = S + A * s(dynamics_list,dynamics_list) * (A') + tmpS + tmpS';
 S = (S + S')/2;

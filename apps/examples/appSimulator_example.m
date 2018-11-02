@@ -243,6 +243,75 @@ end
 %  appVisualizeKUKA_planar(trajectory2);
 
 %%
+clear all
+close all
+clc
+robot = makeKukaR820_planar_prior;
+
+n = robot.dof;
+A = robot.A;
+M = robot.M;
+G = robot.G;
+
+q0 = zeros(n,1);
+qdot0 = zeros(n,1);
+qddot0 = zeros(n,1);
+
+dt = 0.01;
+T  = 5;
+n_step = ceil(T/dt);
+dynamics1 = @dynamics_kp_nop;
+OPTIONS = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
+ctrlfcn = str2func('zoh');
+nU = 2;
+u0 = cell(1,nU);
+x0s1 = [q0;qdot0];
+x0s2 = [q0;qdot0];
+par.dt = dt; par.delay = 0; par.tau = dt;
+Vdot_0 = zeros(6,1);
+Vdot_0(6) = 9.82;
+trajectory1 = zeros(2*n,n_step+1);
+trajectory2 = zeros(2*n,n_step+1);
+
+trajectory1(:,1) = x0s1;
+trajectory2(:,1) = x0s2;
+
+kp = 2;
+kd = 0.1;
+q  = x0s1(1:n);
+dq = x0s1(n+1:2*n);
+for i = 1:n_step
+%     U = solveInverseDynamics(A, M, q, zeros(3,1), zeros(3,1), G, Vdot_0);
+%     disp(U');
+% %     U = U(1:6) + kp * (q0(1:6) - x0s(1:6)) + kd * (-x0s(8:13));
+% %     U = [U;0];
+%     U(1:6) = U(1:6) + kp * (q0(1:6) - q(1:6)) + kd * (-dq(1:6));
+%     disp(U')
+    U = zeros(2,1);
+    U = -40 +  80 * rand(2,1);
+    ddq = solveForwardDynamics(A,M,q,dq,U,G, Vdot_0, robot.F);     
+    dq = dq + ddq * dt;
+    q  = q + dq * dt;
+    
+    
+    for j = 1:nU, u0{j} = @(t)ctrlfcn(U(j,:),t,par); end
+    [T1 y1] = ode45(dynamics1, [0 dt/2 dt], x0s1, OPTIONS, u0{:});
+    x0s1 = y1(3,:)';
+    
+    
+    trajectory1(:,i+1) = x0s1;
+    trajectory2(:,i+1) = [q;dq];
+    
+end
+close all
+for i = 1:2*n
+figure(i);
+plot(trajectory1(i,:));
+hold on;
+plot(trajectory2(i,:));
+legend('ode','simple');
+end
+%%
 
 
 function u = zoh(f, t, par) % **************************** zero-order hold

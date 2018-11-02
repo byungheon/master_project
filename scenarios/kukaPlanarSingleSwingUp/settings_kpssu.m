@@ -69,7 +69,7 @@ poli = [3 4 5 7 8 9 10 11 12];
 difi = [1 2 3 4 5 6];
 jointi = [1 2];
 % 2. Set up the scenario
-dt = 0.02;                % [s] sampling time
+dt = 0.01;                % [s] sampling time
 T = 5.0;                  % [s] prediction time
 H = ceil(T/dt);           % prediction steps (optimization horizon)
 maxH = H;                 % max pred horizon
