@@ -22,11 +22,11 @@ targets_temp = yy(:,dyno);
 targets_temp(:,difi) = targets_temp(:,difi) - xx(:,dyno(difi));
 
 % marginalize gp dynamics
-joint_temp = xaug(:,[jointi length(jointi) + jointi]);
+joint_temp = ss(:,[jointi length(jointi) + jointi]);
 
 if (isfield(dynmodel,'model') && ~strcmp(dynmodel.model,'PILCO'))
     local.dynamics    = @dynamics_kp_nop;
-    local.OPTIONS     = odeset('RelTol', 1e-7, 'AbsTol', 1e-7);
+    local.OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
     local.ctrlfcn     = str2func('zoh_local');   
     local.par.dt      = dt; local.par.delay = 0; local.par.tau = dt;
     local.u0          = cell(1,length(jointi));
@@ -44,7 +44,7 @@ if (isfield(dynmodel,'model') && ~strcmp(dynmodel.model,'PILCO'))
        
         local.delta(plant.jointi)           = local.qdotdelt;
         local.delta(jointi+length(jointi))  = local.qddotdelt;
-        targets_temp(i,:)                   = targets_temp(i,:) - local.delta;
+        targets_temp(i,:)                   = targets_temp(i,:) - 0.5*local.delta;
     end
     clear local;
 end

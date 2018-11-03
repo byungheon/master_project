@@ -131,7 +131,7 @@ S = S - M*M';
 persistent jointlist njoint dynamics OPTIONS ctrlfcn u0 par dt;
 if isempty(jointlist)
     dynamics    = @dynamics_kp_nop;
-    OPTIONS     = odeset('RelTol', 1e-7, 'AbsTol', 1e-7);
+    OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
     ctrlfcn     = str2func('zoh');   
     par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
     jointlist   = gpmodel.jointi;
@@ -153,8 +153,8 @@ tau     = m(end-njoint+1:end);
 for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
 [~, y] = ode45(dynamics, [0 dt/2 dt], m(1:(2*njoint)), OPTIONS, u0{:});
 
-M(jointlist)            = M(jointlist) + (y(3,jointlist)' - q);
-M(jointlist + njoint)   = M(jointlist + njoint) + (y(3,jointlist + njoint)' - qdot);
+M(jointlist)            = M(jointlist) + 0.5*(y(3,jointlist)' - q);
+M(jointlist + njoint)   = M(jointlist + njoint) + 0.5*(y(3,jointlist + njoint)' - qdot);
 
 end
 function u = zoh(f, t, par) % **************************** zero-order hold

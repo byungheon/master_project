@@ -48,7 +48,7 @@
 
 
 
-function [x y L latent] = rollout(start, policy, H, plant, cost, dyn)
+function [x y L latent ss] = rollout(start, policy, H, plant, cost, dyn)
 %% Code
 
 if isfield(plant,'augment'), augi = plant.augi;             % sort out indices!
@@ -61,6 +61,7 @@ nX = length(simi)+length(augi); nU = length(policy.maxU); nA = length(angi);
 
 state(simi) = start; state(augi) = plant.augment(state);      % initializations
 x = zeros(H+1, nX+2*nA);
+ss= zeros(H+1,nX);
 x(1,simi) = start' + randn(size(simi))*chol(plant.noise);
 x(1,augi) = plant.augment(x(1,:));
 u = zeros(H, nU); latent = zeros(H+1, size(state,2)+nU);
@@ -70,11 +71,10 @@ Vdot_0_control = [0;0;0;0;0;9.82];
 for i = 1:H % --------------------------------------------- generate trajectory
   s = x(i,dyno)'; sa = gTrig(s, zeros(length(s)), angi); s = [s; sa];
   x(i,end-2*nA+1:end) = s(end-2*nA+1:end);
-  
+  ss(i,:) = state;
   % 1. Apply policy ... or random actions --------------------------------------
   if isfield(policy, 'fcn')
     u(i,:) = policy.fcn(policy,s(poli),zeros(length(poli)));
-    disp(u(i,:));
   else
     if (isfield(dyn,'model')) && (~strcmp(dyn.model,'PILCO'))
         u(i,:) = 0.3 * policy.maxU.*(2*rand(1,nU)-1);
@@ -86,7 +86,7 @@ for i = 1:H % --------------------------------------------- generate trajectory
 
   % 2. Simulate dynamics -------------------------------------------------------
   if (nargin == 6) && (isfield(dyn,'model')) %&& (~strcmp(dyn.model,'PILCO'))
-    gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, s(plant.jointi), zeros(length(plant.jointi),1), zeros(length(plant.jointi),1), dyn.robot.G, Vdot_0_control)';
+    gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, state(plant.jointi), zeros(length(plant.jointi),1), zeros(length(plant.jointi),1), dyn.robot.G, Vdot_0_control)';
   else
     gravity_control = zeros(1,length(policy.maxU));
   end
@@ -117,5 +117,5 @@ for i = 1:H % --------------------------------------------- generate trajectory
 end
 
 
-y = x(2:H+1,1:nX); x = [x(1:H,:) u(1:H,:)]; 
+y = x(2:H+1,1:nX); x = [x(1:H,:) u(1:H,:)]; ss= ss(1:H,:);
 latent(H+1, 1:nX) = state; latent = latent(1:H+1,:); L = L(1,1:H);

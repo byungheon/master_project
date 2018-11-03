@@ -21,7 +21,7 @@ settings_kpssu;                 % load scenario-specific settings
 basename = 'KukaSwingUp_'; % filename used for saving data
 % 2. Initial J random rollouts
 for jj = 1:J
-  [xx, yy, realCost{jj}, latent{jj}] = ...
+  [xx, yy, realCost{jj}, latent{jj} ss] = ...
     rollout(gaussian(mu0, S0), struct('maxU',policy.maxU), H, plant, cost, dynmodel);
   x = [x; xx]; y = [y; yy];       % augment training sets for dynamics model
   if plotting.verbosity > 0;      % visualization of trajectory
