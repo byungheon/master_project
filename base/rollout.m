@@ -74,9 +74,10 @@ for i = 1:H % --------------------------------------------- generate trajectory
   % 1. Apply policy ... or random actions --------------------------------------
   if isfield(policy, 'fcn')
     u(i,:) = policy.fcn(policy,s(poli),zeros(length(poli)));
+    disp(u(i,:));
   else
     if (isfield(dyn,'model')) && (~strcmp(dyn.model,'PILCO'))
-        u(i,:) = 0.6 * policy.maxU.*(2*rand(1,nU)-1);
+        u(i,:) = 0.3 * policy.maxU.*(2*rand(1,nU)-1);
     else
         u(i,:) = 0.3 * policy.maxU.*(2*rand(1,nU)-1);
     end

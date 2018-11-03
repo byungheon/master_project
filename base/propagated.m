@@ -42,6 +42,7 @@
 function [Mnext, Snext, dMdm, dSdm, dMds, dSds, dMdp, dSdp] = ...
   propagated(m, s, plant, dynmodel, policy)
 %% Code
+
 if nargout <= 2                                  % just predict, no derivatives
   [Mnext, Snext] = propagate(m, s, plant, dynmodel, policy);
   return

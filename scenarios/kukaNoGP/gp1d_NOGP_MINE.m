@@ -258,12 +258,12 @@ dVdm = permute(dAdm,[2,1,3]);
 %%
 
 % 5) vectorize derivatives
-dMds = reshape(dMds,[E D*D]);
-% dSds = kron(A,A); % kron(A_g,A_g) == dSDds
-dSds = reshape(dSds,[E*E,D*D]);
-dSdm = reshape(dSdm,[E*E D]);
-dVds = reshape(dVds,[D*E D*D]);
-dVdm = reshape(dVdm,[D*E D]);
+% dMds = reshape(dMds,[E D*D]);
+% % dSds = kron(A,A); % kron(A_g,A_g) == dSDds
+% dSds = reshape(dSds,[E*E,D*D]);
+% dSdm = reshape(dSdm,[E*E D]);
+% dVds = reshape(dVds,[D*E D*D]);
+% dVdm = reshape(dVdm,[D*E D]);
 
 % 6) symmetrize variables dependent to variance
 % X=reshape(1:D*D,[D D]); XT=X'; dSds=(dSds+dSds(:,XT(:)))/2; 

@@ -69,7 +69,7 @@ poli = [3 4 5 7 8 9 10 11 12];
 difi = [1 2 3 4 5 6];
 jointi = [1 2];
 % 2. Set up the scenario
-dt = 0.01;                % [s] sampling time
+dt = 0.02;                % [s] sampling time
 T = 5.0;                  % [s] prediction time
 H = ceil(T/dt);           % prediction steps (optimization horizon)
 maxH = H;                 % max pred horizon
@@ -101,7 +101,7 @@ plant.angstd = mu0(1:2);  % mid point of each joint angle (we need to wrap up ea
 % 4. Set up the policy structure
 policy.fcn = @(policy,m,s)conCat(@congp,@gSat,policy,m,s); % controller 
                                                            % representation
-policy.maxU = [100 60];                                     % max. amplitude of 
+policy.maxU = [100 70];                                    % max. amplitude of 
                                                            % control
 [mm ss cc] = gTrig(mu0, S0, plant.angi);                   % represent angles 
 mm = [mu0; mm]; cc = S0*cc; ss = [S0 cc; cc' ss];          % in complex plane      
@@ -135,7 +135,7 @@ switch dynmodel.model
         dynmodel.fcn = @gp1d_kuka_planar_mine;
 end
 dynmodel.robot      = makeKukaR820_planar_prior();
-dynmodel.Vdot0      = [0;0;0;0;0;9.82];
+dynmodel.Vdot0      = [0;0;0;0;0;0];
 dynmodel.stepsize   = dt;
 dynmodel.train      = @train;             % function to train dynamics model
 dynmodel.induce     = zeros(400,0,1);    % shared inducing inputs (sparse GP)

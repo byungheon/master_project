@@ -247,7 +247,7 @@ clear all
 close all
 clc
 robot = makeKukaR820_planar_prior;
-
+rand('seed',10);
 n = robot.dof;
 A = robot.A;
 M = robot.M;
@@ -257,7 +257,7 @@ q0 = zeros(n,1);
 qdot0 = zeros(n,1);
 qddot0 = zeros(n,1);
 
-dt = 0.01;
+dt = 0.005;
 T  = 5;
 n_step = ceil(T/dt);
 dynamics1 = @dynamics_kp_nop;
@@ -288,10 +288,13 @@ for i = 1:n_step
 %     U(1:6) = U(1:6) + kp * (q0(1:6) - q(1:6)) + kd * (-dq(1:6));
 %     disp(U')
     U = zeros(2,1);
-    U = -40 +  80 * rand(2,1);
+    U = -[60;70] + [120;140].* rand(2,1);
     ddq = solveForwardDynamics(A,M,q,dq,U,G, Vdot_0, robot.F);     
     dq = dq + ddq * dt;
     q  = q + dq * dt;
+%     dq = dq + ddq * dt;
+%     dq = dq + ddq * dt;
+    
     
     
     for j = 1:nU, u0{j} = @(t)ctrlfcn(U(j,:),t,par); end
