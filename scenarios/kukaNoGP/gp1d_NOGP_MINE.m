@@ -64,7 +64,6 @@ if isempty(dynamics)
 end
 
 %% Robot Dynamics
-gpmodel.stepsize = 1;
 % n_span  = gpmodel.n_span;
 q       = m(jointlist);
 qdot    = m(jointlist + njoint);

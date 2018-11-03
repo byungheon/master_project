@@ -86,8 +86,8 @@ dqddotdtau          = dqddotdtau(:,1:ncontrol) * gpmodel.stepsize;
 M = zeros(E,1);
 % M(jointlist)            = (y(n_span+1,jointlist)' - q);
 % M(jointlist + njoint)   = (y(n_span+1,jointlist + njoint)' - qdot);
-M(jointlist)            = qdot * gpmodel.stepsize;
-M(jointlist + njoint)   = qddot * gpmodel.stepsize;
+M(jointlist)                = qdot * gpmodel.stepsize;
+M(jointlist + njoint)       = jointTostate(qddot) * gpmodel.stepsize;
 
 A                                        = zeros(E,D);
 A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
@@ -95,10 +95,14 @@ A(jointlist + njoint,jointlist)          = dqddotdq;
 A(jointlist + njoint,jointlist + njoint) = dqddotdqdot;
 A(jointlist + njoint,end-ncontrol+1:end)   = dqddotdtau;
 
-B = eye(D,D);
-B(3,1:3) = [-1 1 1];
-B(6,4:6) = [-1 1 1];
-A = A * B;
+B1 = eye(D,D);
+B1(3,1:3) = [-1 1 1];
+B1(6,4:6) = [-1 1 1];
+B2 = eye(E,E);
+B2(3,1:3) = [1 -1 1];
+B2(6,4:6) = [1 -1 1];
+
+A = B2 * A * B1;
 
 V       = A';
 S       = A * s * (A');
