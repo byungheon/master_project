@@ -175,8 +175,9 @@ end
 %% Forward 2nd Derivative
 clear all
 close all
-% clc
+clc
 robot = makeKukaR820_planar_prior;
+% robot = makeKukaR820_planar;
 
 n = robot.dof;
 A = robot.A;
@@ -187,33 +188,33 @@ Vdot0 = [0,0,0,0,0,9.8]';
 dt = 0.00001;
 x_start = randn();
 x       = x_start:dt:(x_start+20*dt);
-% q       = -2 + 4 * rand(2,1);
-% qdot    = (-2 + 4 * rand(2,1)) * 2;
-% tau     = (-2 + 4 * rand(2,1)) * 10;
-q = [  -1.0063;
-   -0.7184];
-qdot = [2.6401;
-   -3.6490];
-tau = [-3.5037;
-   -6.5485];
+q       = -2 + 4 * rand(n,1);
+qdot    = (-2 + 4 * rand(n,1)) * 2;
+tau     = (-2 + 4 * rand(n,1)) * 10;
+% q = [  -1.0063;
+%    -0.7184];
+% qdot = [2.6401;
+%    -3.6490];
+% tau = [-3.5037;
+%    -6.5485];
 
-qddot                   = zeros(2,length(x));
-dqddotdq                = zeros(2,2,length(x));
-dqddotdqdot             = zeros(2,2,length(x));
-dqddotdtau              = zeros(2,2,length(x));
-dqddotdqdq              = zeros(2,4,length(x));
-dqddotdqdqdot           = zeros(2,4,length(x));
-dqddotdqdtau            = zeros(2,4,length(x));
-dqddotdqdotdqdot        = zeros(2,4,length(x));
-dqddotdqdotdtau         = zeros(2,4,length(x));
-dqddotdtaudtau          = zeros(2,4,length(x));
+qddot                   = zeros(n,length(x));
+dqddotdq                = zeros(n,n,length(x));
+dqddotdqdot             = zeros(n,n,length(x));
+dqddotdtau              = zeros(n,n,length(x));
+dqddotdqdq              = zeros(n,n*n,length(x));
+dqddotdqdqdot           = zeros(n,n*n,length(x));
+dqddotdqdtau            = zeros(n,n*n,length(x));
+dqddotdqdotdqdot        = zeros(n,n*n,length(x));
+dqddotdqdotdtau         = zeros(n,n*n,length(x));
+dqddotdtaudtau          = zeros(n,n*n,length(x));
 
 list_cell = [1,1,1,2,2,3];
 cell_dqddot = {dqddotdq, dqddotdqdot, dqddotdtau};
 cell_ddqddot= {dqddotdqdq, dqddotdqdqdot, dqddotdqdtau, dqddotdqdotdqdot, dqddotdqdotdtau, dqddotdtaudtau};
-for cell_i = 1:6
-for qddot_i = 1:2
-    for input_i = 1:2
+for cell_i = 1:1
+for qddot_i = 1:n
+    for input_i = 1:n
        for i =1:length(x)
             q_tmp       = q;
             qdot_tmp    = qdot;
@@ -232,16 +233,20 @@ for qddot_i = 1:2
             [cell_dqddot{1}(:,:,i), cell_dqddot{2}(:,:,i),  cell_dqddot{3}(:,:,i), cell_ddqddot{1}(:,:,i), cell_ddqddot{2}(:,:,i), cell_ddqddot{3}(:,:,i), cell_ddqddot{4}(:,:,i), cell_ddqddot{5}(:,:,i), cell_ddqddot{6}(:,:,i)] = ...
                 solveForwardDynamicsSecondDerivatives_pilco(A,M,q_tmp,qdot_tmp,qddot_tmp,G,Vdot0,Friction);
        end
-        numerical = zeros(2,length(x));
+        numerical = zeros(n,length(x));
 
-        for i = 1:2
+        for i = 1:n
             gradient_tmp = cell_dqddot{list_cell(cell_i)}(qddot_i,i,:);
             gradient_tmp = gradient_tmp(:)';
             numerical(i,:) = gradient(gradient_tmp,dt);
         end
         numerical = numerical(:,2:end-1);
-        analytic  = cell_ddqddot{cell_i}(qddot_i, [input_i,input_i+2],:);
-        analytic  = reshape(analytic,[2,size(analytic,3)]);
+        list_input = [];
+        for k = 1:n
+            list_input = [list_input input_i+n*(k-1)]; 
+        end
+        analytic  = cell_ddqddot{cell_i}(qddot_i, list_input,:);
+        analytic  = reshape(analytic,[n,size(analytic,3)]);
         analytic  = analytic(:,2:end-1);analytic - numerical 
         disp('--------------------------');
 

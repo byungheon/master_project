@@ -59,12 +59,12 @@ if isempty(dynamics)
     par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
     jointlist   = gpmodel.jointi;
     njoint      = length(jointlist);
-    ncontrol    = njoint - 1;
+    ncontrol    = njoint-1;
     u0          = cell(1,ncontrol);
 end
 
 %% Robot Dynamics
-
+gpmodel.stepsize = 1;
 % n_span  = gpmodel.n_span;
 q       = m(jointlist);
 qdot    = m(jointlist + njoint);
@@ -144,10 +144,10 @@ for i = 1:njoint
 end
 
 M = zeros(E,1);
-% M(jointlist)            = (y(n_span+1,jointlist)' - q);
-% M(jointlist + njoint)   = (y(n_span+1,jointlist + njoint)' - qdot);
-M(jointlist)            = qdot * gpmodel.stepsize;
-M(jointlist + njoint)   = qddot * gpmodel.stepsize;
+% M(jointlist)              = (y(n_span+1,jointlist)' - q);
+% M(jointlist + njoint)     = (y(n_span+1,jointlist + njoint)' - qdot);
+M(jointlist)                = qdot * gpmodel.stepsize;
+M(jointlist + njoint)       = jointTostate(qddot) * gpmodel.stepsize;
 
 A                                        = zeros(E,D);
 A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
@@ -155,10 +155,14 @@ A(jointlist + njoint,jointlist)          = dqddotdq;
 A(jointlist + njoint,jointlist + njoint) = dqddotdqdot;
 A(jointlist + njoint,end-ncontrol+1:end)   = dqddotdtau;
 
-B = eye(D,D);
-B(3,1:3) = [-1 1 1];
-B(6,4:6) = [-1 1 1];
-A = A * B;
+B1 = eye(D,D);
+B1(3,1:3) = [-1 1 1];
+B1(6,4:6) = [-1 1 1];
+B2 = eye(E,E);
+B2(3,1:3) = [1 -1 1];
+B2(6,4:6) = [1 -1 1];
+
+A = B2 * A * B1;
 
 dAdm = zeros(E,D,D);
 for i = 1:njoint
@@ -176,10 +180,33 @@ for i = 1:ncontrol
     dAdm(jointlist + njoint,jointlist + njoint,i+end-ncontrol)      = dFDdqdotdtau(:,:,i);
     dAdm(jointlist + njoint,end-ncontrol+1:end,i+end-ncontrol)      = dFDdtaudtau(:,1:ncontrol,i);   
 end
-for i = 1:D
-   dAdm(:,:,i) = dAdm(:,:,i) * B;
+
+dBABdA = zeros(E,D,E,D);
+for i = 1:E
+    for j = 1:D
+        dBABdA(:,:,i,j) = B2(:,i)*B1(j,:);
+    end
 end
-V       = A';
+dBABdm_convert = zeros(E,D,D);
+for k = 1:D
+    temppp = zeros(E,D);
+    for i = 1:E
+        for j = 1:D
+            temppp = temppp + dBABdA(:,:,i,j) * dAdm(i,j,k);
+        end
+    end
+    dBABdm_convert(:,:,k) = temppp;
+end
+
+for i = 1:D
+    temppp = zeros(E,D);
+    for j = 1:D
+        temppp = temppp + dBABdm_convert(:,:,j) * B1(j,i);
+    end
+   dAdm(:,:,i) = temppp;
+end
+
+V = A';
 S = A * s * (A');
 
 Asigma_t = A * s;
@@ -187,6 +214,8 @@ Asigma_t = A * s;
 dSDdAT = zeros(E,E,D,E);
 dSDdm  = zeros(E,E,D);
 dSDds   = zeros(E,E,D,D);
+dVDds   = zeros(D,E,D,D);
+
 for i = 1:D
    for j = 1:E
        temp_sigma       = zeros(E,E);
@@ -202,14 +231,14 @@ for i = 1:D
             tempmatdVD(i,:)   = A(:,j)';
             dVDds(:,:,i,j)    = tempmatdVD;
         else
-            dSDds(:,:,i,j)    = A(:,i) * (A(:,j)') + A(:,j) * (A(:,i)');
+            dSDds(:,:,i,j)    = 0.5*(A(:,i) * (A(:,j)') + A(:,j) * (A(:,i)'));
             dSDds(:,:,j,i)    = dSDds(:,:,i,j);
             tempmatdVD(i,:)   = A(:,j)';
             tempmatdVD(j,:)   = tempmatdVD(j,:) + A(:,i)';
-            dVDds(:,:,i,j)    = tempmatdVD;
-            dVDds(:,:,j,i)    = tempmatdVD;
+            dVDds(:,:,i,j)    = 0.5 * s \ tempmatdVD;
+            dVDds(:,:,j,i)    = dVDds(:,:,i,j);
         end  
-    end
+   end
 end
 for i = 1:D
    tempmat = zeros(E,E);
@@ -227,9 +256,6 @@ dSdm = dSDdm;
 dSds = dSDds;
 dVds = dVDds;
 dVdm = permute(dAdm,[2,1,3]);
-for i = 1:D
-   dVdm(:,:,i) = s * dVdm(:,:,i); 
-end
 %%
 
 % 5) vectorize derivatives

@@ -396,9 +396,254 @@ end
 % end
 % toc
 %%
+%%
+clear all;
+close all
+clc;
+
+settings_NOGP;
+% load('C:\Users\my\Desktop\bh\master_project\data\KukaPlanarSingleSwingUp_Temp_PILCO_2_H250.mat');
+
+robot = makeKukaR820_planar;
+n = robot.dof;
+n_control = 2;
+% n = robot.dof;
+% A = robot.A;
+% M = robot.M;
+% G = robot.G;
+% Phi = robot.Phi;
+
+m0 = - 1 + 2 * rand(2*n,1);
+s0 = diag(0.1^2 * ones(2*n,1));
+tau0 = - 10 + 20 * rand(2,1);
+taus0 = diag(0.1^2 * ones(n_control,1));
 
 
+dt = 0.00001;
+% dynmodel.stepsize = dt;
+% x_start = randn();
+x_start = 0.0665;
+x       = x_start:dt:(x_start+10*dt);
 
+D = 2*n+n_control;
+E = 2*n;
+% D = 11;
+% E = 6;
+M0 = -1 + 2 * rand(D,1);
+% M0 = [    0.4540
+%     0.3113
+%    -0.8053
+%     0.7822
+%     0.0252
+%    -0.6122
+%    -0.9575
+%     0.7448
+%    -0.2473
+%    -0.4991
+%     0.1352];
+S0 = diag(0.01^2 * ones(D,1));
+
+M = zeros(E,length(x));
+S = zeros(E,E,length(x));
+V = zeros(D,E,length(x));
+dMdm = zeros(E,D,length(x));
+dSdm = zeros(E,E,D,length(x));
+dVdm = zeros(D,E,D,length(x));
+dMds = zeros(E,D,D,length(x));
+dSds = zeros(E,E,D,D,length(x));
+dVds = zeros(D,E,D,D,length(x));
+
+aM = zeros(E,length(x));
+aS = zeros(E,E,length(x));
+aV = zeros(D,E,length(x));
+adMdm = zeros(E,D,length(x));
+adSdm = zeros(E,E,D,length(x));
+adVdm = zeros(D,E,D,length(x));
+adMds = zeros(E,D,D,length(x));
+adSds = zeros(E,E,D,D,length(x));
+adVds = zeros(D,E,D,D,length(x));
+
+% dynmodel.inputs     = rand(100,D);
+dynmodel.targets    = rand(100,E);
+% dynmodel.hyp        = rand(D+2,E);
+% 
+dynmodel.n_span = 200;
+% for m_i = 1:D
+%     for i = 1:length(x)
+%     m = M0;
+%     s = S0;
+%     
+%     m(m_i) = m(m_i) + x(i);
+%     
+%     [M(:,i), S(:,:,i), V(:,:,i), dMdm(:,:,i), dSdm(:,:,:,i), dVdm(:,:,:,i), dMds(:,:,:,i), dSds(:,:,:,:,i), dVds(:,:,:,:,i)] = gp1d_NOGP_MINE(dynmodel, m, s);
+% 
+%     end
+% 
+% %dMdm    
+% %     numerical = zeros(E,length(x));
+% %     for i = 1:E
+% %        gradient_tmp = M(i,:);
+% %        gradient_tmp = gradient_tmp(:)';
+% %        numerical(i,:) = gradient(gradient_tmp,dt);
+% %     end
+% %     numerical = numerical(:,2:end-1);
+% %     analytic  = dMdm(:, m_i, :);
+% %     analytic  = analytic(:,2:end-1);
+% % %     numerical
+% % %     disp('--------------------------');
+% % %     analytic
+% % %     disp('--------------------------');
+% %     analytic - numerical 
+% %     disp('--------------------------');
+%     
+% %dSdm
+% %     numerical = zeros(E*E,length(x));
+% %     for i = 1:E
+% %         for j=1:E
+% %            gradient_tmp = S(i,j,:);
+% %            gradient_tmp = gradient_tmp(:)';
+% %            numerical((j-1)*E+i,:) = gradient(gradient_tmp,dt);
+% %         end
+% %     end
+% %     numerical = numerical(:,2:end-1);
+% %     analytic  = dSdm(:, :, m_i, :);
+% %     analytic  = reshape(analytic,[E*E,size(analytic,4)]);
+% %     analytic  = analytic(:,2:end-1);
+% %     numerical
+% %     disp('--------------------------');
+% %     analytic - numerical 
+% %     disp('--------------------------');
+% 
+% %dVdm
+%     numerical = zeros(D*E,length(x));
+%     for i = 1:D
+%         for j=1:E
+%            gradient_tmp = V(i,j,:);
+%            gradient_tmp = gradient_tmp(:)';
+%            numerical((j-1)*D+i,:) = gradient(gradient_tmp,dt);
+%         end
+%     end
+%     numerical = numerical(:,2:end-1);
+%     analytic  = dVdm(:, :, m_i, :);
+%     analytic  = reshape(analytic,[D*E,size(analytic,4)]);
+%     analytic  = analytic(:,2:end-1);numerical
+%     disp('--------------------------');
+%     analytic - numerical 
+%     disp('--------------------------');
+%     disp('--------------------------');
+% end
+
+tic
+error = zeros(E,length(x)-2);
+for sc_i = 1:D
+    for sr_i = 1:D
+        for i = 1:length(x)
+        m = M0;
+        s = S0;
+
+        s(sc_i,sr_i) = s(sc_i,sr_i) + x(i);
+%         s(sr_i,sc_i) = s(sc_i,sr_i);
+        
+        [M(:,i), S(:,:,i), V(:,:,i), dMdm(:,:,i), dSdm(:,:,:,i), dVdm(:,:,:,i), dMds(:,:,:,i), dSds(:,:,:,:,i), dVds(:,:,:,:,i)] = gp1d_NOGP_MINE(dynmodel, m, s);
+        
+        end
+        for i = 1:length(x)
+        m = M0;
+        s = S0;
+
+%         s(sc_i,sr_i) = s(sc_i,sr_i) + x(i);
+        s(sr_i,sc_i) = s(sr_i,sc_i) + x(i);
+        
+        [aM(:,i), aS(:,:,i), aV(:,:,i), adMdm(:,:,i), adSdm(:,:,:,i), adVdm(:,:,:,i), adMds(:,:,:,i), adSds(:,:,:,:,i), adVds(:,:,:,:,i)] = gp1d_NOGP_MINE(dynmodel, m, s);
+        
+        end
+% %         dMds
+%         numerical = zeros(E,length(x));
+%         for i = 1:E
+%            gradient_tmp = M(i,:);
+%            gradient_tmp = gradient_tmp(:)';
+%            numerical(i,:) = gradient(gradient_tmp,dt);
+%         end
+%         numerical = numerical(:,2:end-1);
+%         if sc_i ~= sr_i
+%             analytic  = dMds(:, sc_i, sr_i, :);
+%         else
+%             analytic  = dMds(:, sc_i, sr_i, :);
+%         end
+%         
+%         analytic  = reshape(analytic,[E,size(analytic,4)]);
+%         analytic  = analytic(:,2:end-1);
+%         numerical
+%     disp('--------------------------');
+%     analytic - numerical 
+%     disp('--------------------------');
+%         if ~isreal(analytic - numerical)
+%             if ~isreal(analytic)
+%                 disp('analytic complex!!');
+%             else
+%                 disp('numerical complex!!');
+%             end
+%             keyboard;
+%         end
+%         error = error + abs(analytic - numerical);
+    
+%dSds
+        numerical = zeros(E*E,length(x));
+        for i = 1:E
+            for j=1:E
+               gradient_tmp = S(i,j,:);
+               gradient_tmp = gradient_tmp(:)';
+               numerical((j-1)*E+i,:) = gradient(gradient_tmp,dt);
+            end
+        end
+        numerical = numerical(:,2:end-1);
+        
+        numerical2 = zeros(E*E,length(x));
+        for i = 1:E
+            for j=1:E
+               gradient_tmp = aS(i,j,:);
+               gradient_tmp = gradient_tmp(:)';
+               numerical2((j-1)*E+i,:) = gradient(gradient_tmp,dt);
+            end
+        end
+        numerical2 = numerical2(:,2:end-1);
+
+        if sc_i ~= sr_i
+            numerical = numerical + numerical2;
+        end
+        analytic  = dSds(:, :, sc_i, sr_i, :);
+        analytic  = reshape(analytic,[E*E,size(analytic,5)]);
+        analytic  = analytic(:,2:end-1);
+%         numerical
+%     disp('--------------------------');
+    analytic - numerical 
+    disp('--------------------------');
+
+% %dVds
+%         numerical = zeros(D*E, length(x));
+%         for i = 1:D
+%             for j = 1:E
+%                gradient_tmp = V(i,j,:);
+%                gradient_tmp = gradient_tmp(:)';
+%                numerical((j-1)*D+i,:) = gradient(gradient_tmp,dt);
+%             end
+%         end
+%         numerical = numerical(:,2:end-1);
+%         analytic  = dVds(:, :, sc_i,sr_i, :);
+%        
+%         
+%         analytic  = reshape(analytic,[D*E,size(analytic,5)]);
+%         analytic  = analytic(:,2:end-1);
+% %         numerical
+% %     disp('--------------------------');
+%     (analytic - numerical)'
+% %     disp('--------------------------');
+%         disp('--------------------------');
+    end
+end
+toc
+
+%%
 function u = zoh(f, t, par) % **************************** zero-order hold
 d = par.delay;
 if d==0

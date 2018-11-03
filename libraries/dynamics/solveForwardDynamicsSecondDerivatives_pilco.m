@@ -71,12 +71,9 @@ function [dqddotdq, dqddotdqdot, dqddotdtau, dqddotdqdq, dqddotdqdqdot, dqddotdq
            for k = 1:n
               if j == i
                   dqddotdqdq(:,(i-1) * n + j)       = dqddotdqdq(:,(i-1) * n + j) + 2 * dtaudqdqddot(:,(i-1) * n + k) * dqddotdq(k, j);
-              elseif j>i
-                  dqddotdqdq(:,(i-1) * n + j)       = dqddotdqdq(:,(i-1) * n + j) + 1 * dtaudqdqddot(:,(j-1) * n + k) * dqddotdq(k, i);
               else
-                  dqddotdqdq(:,(i-1) * n + j)       = dqddotdqdq(:,(i-1) * n + j) + 1 * dtaudqdqddot(:,(i-1) * n + k) * dqddotdq(k, j);
+                  dqddotdqdq(:,(i-1) * n + j)       = dqddotdqdq(:,(i-1) * n + j) + dtaudqdqddot(:,(i-1) * n + k) * dqddotdq(k, j)  + dtaudqdqddot(:,(j-1) * n + k) * dqddotdq(k, i);
               end
-%               dqddotdqdq(:,(i-1) * n + j)       = dqddotdqdq(:,(i-1) * n + j) + 2 * dtaudqdqddot(:,(i-1) * n + k) * dqddotdq(k, j);
 
               dqddotdqdqdot(:,(i-1) * n + j)    = dqddotdqdqdot(:,(i-1) * n + j) + dtaudqdqddot(:,(i-1) * n + k) * dqddotdqdot(k, j);
               dqddotdqdtau(:,(i-1) * n + j)     = dqddotdqdtau(:,(i-1) * n + j) + dtaudqdqddot(:,(i-1) * n + k) * dqddotdtau(k, j); 
