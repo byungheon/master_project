@@ -27,7 +27,7 @@ if isempty(robot_kuka_planar_nop)
    disp('robot initial construction');
    robot_kuka_planar_nop = makeKukaR820_planar_prior;
 end
-Vdot_0 = zeros(6,1); Vdot_0(6) = 0;
+Vdot_0 = zeros(6,1); Vdot_0(6) = 9.82;
 tau = zeros(2,1);
 tau(1) = f1(t);
 tau(2) = f2(t);

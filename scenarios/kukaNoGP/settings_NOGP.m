@@ -67,14 +67,14 @@ poli = [4 5 6 7 8 9 10 11 12];
 difi = [1 2 3 4 5 6];
 jointi = [1 2 3];
 % 2. Set up the scenario
-dt = 0.02;                % [s] sampling time
+dt = 0.01;                % [s] sampling time
 T = 5.0;                  % [s] prediction time
 H = ceil(T/dt);           % prediction steps (optimization horizon)
 maxH = H;                 % max pred horizon
 nc = 200;                 % size of controller training set
-s = (0.01^2) * ones(1,6);% initial state variances
+s = (0.01^2) * ones(1,6); % initial state variances
 S0 = diag(s);             % initial state covariance matrix
-mu0 = zeros(6,1);        % initial state mean
+mu0 = zeros(6,1);         % initial state mean
 N = 60;                   % number of policy searches
 J = 1;                    % J initial (random) trajectories, each of length H 
 K = 1;                    % number of initial states for which we optimize
@@ -133,7 +133,7 @@ switch dynmodel.model
         dynmodel.fcn = @gp1d_NOGP_MINE;
 end
 dynmodel.robot      = makeKukaR820_planar();
-dynmodel.Vdot0      = [0;0;0;0;0;0];
+dynmodel.Vdot0      = [0;0;0;0;0;9.82];
 dynmodel.stepsize   = dt;
 dynmodel.train      = @train;             % function to train dynamics model
 dynmodel.induce     = zeros(400,0,1);    % shared inducing inputs (sparse GP)

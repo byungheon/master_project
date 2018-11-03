@@ -135,7 +135,7 @@ switch dynmodel.model
         dynmodel.fcn = @gp1d_kuka_planar_mine;
 end
 dynmodel.robot      = makeKukaR820_planar_prior();
-dynmodel.Vdot0      = [0;0;0;0;0;0];
+dynmodel.Vdot0      = [0;0;0;0;0;9.82];
 dynmodel.stepsize   = dt;
 dynmodel.train      = @train;             % function to train dynamics model
 dynmodel.induce     = zeros(400,0,1);    % shared inducing inputs (sparse GP)

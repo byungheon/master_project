@@ -55,34 +55,39 @@ end
 
 
 %% Robot Dynamics
-n_span  = gpmodel.n_span;
+% n_span  = gpmodel.n_span;
 q       = m(jointlist);
 qdot    = m(jointlist + njoint);
 tau     = [m(end-ncontrol+1:end);0];
 
-for j = 1:ncontrol, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
-[~, y] = ode45(dynamics, linspace(0,gpmodel.stepsize,n_span+1), m(1:(2*njoint)), OPTIONS, u0{:});
+% for j = 1:ncontrol, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
+% [~, y] = ode45(dynamics, linspace(0,gpmodel.stepsize,n_span+1), m(1:(2*njoint)), OPTIONS, u0{:});
 
 % 
 qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,stateTojoint(q),stateTojoint(qdot),tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
 [dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,stateTojoint(q),stateTojoint(qdot),qddot,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
-for i = 2:n_span
-    q_tmp       = y(i,jointlist)';
-    qdot_tmp    = y(i,jointlist + njoint)';
-    qddot_tmp   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,stateTojoint(q_tmp),stateTojoint(qdot_tmp),tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
-    [dqddotdq_temp, dqddotdqdot_temp, dqddotdtau_temp] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,stateTojoint(q_tmp),stateTojoint(qdot_tmp),qddot_tmp,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
-    
-    dqddotdq            = dqddotdq + dqddotdq_temp;
-    dqddotdqdot         = dqddotdqdot + dqddotdqdot_temp;
-    dqddotdtau          = dqddotdtau + dqddotdtau_temp;
-end
-dqddotdq            = dqddotdq * gpmodel.stepsize/n_span;
-dqddotdqdot         = dqddotdqdot * gpmodel.stepsize/n_span;
-dqddotdtau          = dqddotdtau(:,1:ncontrol) * gpmodel.stepsize/n_span;
+% for i = 2:n_span
+%     q_tmp       = y(i,jointlist)';
+%     qdot_tmp    = y(i,jointlist + njoint)';
+%     qddot_tmp   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,stateTojoint(q_tmp),stateTojoint(qdot_tmp),tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+%     [dqddotdq_temp, dqddotdqdot_temp, dqddotdtau_temp] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,stateTojoint(q_tmp),stateTojoint(qdot_tmp),qddot_tmp,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+%     
+%     dqddotdq            = dqddotdq + dqddotdq_temp;
+%     dqddotdqdot         = dqddotdqdot + dqddotdqdot_temp;
+%     dqddotdtau          = dqddotdtau + dqddotdtau_temp;
+% end
+% dqddotdq            = dqddotdq * gpmodel.stepsize/n_span;
+% dqddotdqdot         = dqddotdqdot * gpmodel.stepsize/n_span;
+% dqddotdtau          = dqddotdtau(:,1:ncontrol) * gpmodel.stepsize/n_span;
+dqddotdq            = dqddotdq * gpmodel.stepsize;
+dqddotdqdot         = dqddotdqdot * gpmodel.stepsize;
+dqddotdtau          = dqddotdtau(:,1:ncontrol) * gpmodel.stepsize;
 
 M = zeros(E,1);
-M(jointlist)            = (y(n_span+1,jointlist)' - q);
-M(jointlist + njoint)   = (y(n_span+1,jointlist + njoint)' - qdot);
+% M(jointlist)            = (y(n_span+1,jointlist)' - q);
+% M(jointlist + njoint)   = (y(n_span+1,jointlist + njoint)' - qdot);
+M(jointlist)            = qdot * gpmodel.stepsize;
+M(jointlist + njoint)   = qddot * gpmodel.stepsize;
 
 A                                        = zeros(E,D);
 A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;

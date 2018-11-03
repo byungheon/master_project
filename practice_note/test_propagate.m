@@ -252,42 +252,44 @@ for m_i = 1:D
     
     m(m_i) = m(m_i) + x(i);
 
-    [M(:,i), S(:,:,i), V(:,:,i), dMdm(:,:,i), dSdm(:,:,:,i), dVdm(:,:,:,i), dMds(:,:,:,i), dSds(:,:,:,:,i), dVds(:,:,:,:,i)] = gp1d_odetest(dynmodel, m, s);
+    [M(:,i), S(:,:,i), V(:,:,i), dMdm(:,:,i), dSdm(:,:,:,i), dVdm(:,:,:,i), dMds(:,:,:,i), dSds(:,:,:,:,i), dVds(:,:,:,:,i)] = gp1d_test(dynmodel, m, s);
 
     end
 
 %dMdm    
-%     numerical = zeros(E,length(x));
+    numerical = zeros(E,length(x));
+    for i = 1:E
+       gradient_tmp = M(i,:);
+       gradient_tmp = gradient_tmp(:)';
+       numerical(i,:) = gradient(gradient_tmp,dt);
+    end
+    numerical = numerical(:,2:end-1);
+    analytic  = dMdm(:, m_i, :);
+    analytic  = analytic(:,2:end-1);
+    numerical
+    disp('--------------------------');
+    analytic
+    disp('--------------------------');
+    analytic - numerical 
+    disp('--------------------------');
+    
+%dSdm
+%     numerical = zeros(E*E,length(x));
 %     for i = 1:E
-%        gradient_tmp = M(i,:);
-%        gradient_tmp = gradient_tmp(:)';
-%        numerical(i,:) = gradient(gradient_tmp,dt);
+%         for j=1:E
+%            gradient_tmp = S(i,j,:);
+%            gradient_tmp = gradient_tmp(:)';
+%            numerical((j-1)*E+i,:) = gradient(gradient_tmp,dt);
+%         end
 %     end
 %     numerical = numerical(:,2:end-1);
-%     analytic  = dMdm(:, m_i, :);
+%     analytic  = dSdm(:, :, m_i, :);
+%     analytic  = reshape(analytic,[E*E,size(analytic,4)]);
 %     analytic  = analytic(:,2:end-1);
 % %     numerical
 % %     disp('--------------------------');
 %     analytic - numerical 
-% %     disp('--------------------------');
-    
-%dSdm
-    numerical = zeros(E*E,length(x));
-    for i = 1:E
-        for j=1:E
-           gradient_tmp = S(i,j,:);
-           gradient_tmp = gradient_tmp(:)';
-           numerical((j-1)*E+i,:) = gradient(gradient_tmp,dt);
-        end
-    end
-    numerical = numerical(:,2:end-1);
-    analytic  = dSdm(:, :, m_i, :);
-    analytic  = reshape(analytic,[E*E,size(analytic,4)]);
-    analytic  = analytic(:,2:end-1);
-%     numerical
 %     disp('--------------------------');
-    analytic - numerical 
-    disp('--------------------------');
 
 %dVdm
 %     numerical = zeros(D*E,length(x));
@@ -305,93 +307,93 @@ for m_i = 1:D
 %     disp('--------------------------');
 %     analytic - numerical 
 %     disp('--------------------------');
-%     disp('--------------------------');
+    disp('--------------------------');
 end
 
 % tic
-error = zeros(E,length(x)-2);
-for sc_i = 1:D
-    for sr_i = 1:D
-        for i = 1:length(x)
-        m = M0;
-        s = S0;
-
-    %     m(m_i) = m(m_i) + x(i);
-        s(sc_i,sr_i) = s(sc_i,sr_i) + x(i);
-        s(sr_i,sc_i) = s(sc_i,sr_i);
-        
-        [M(:,i), S(:,:,i), V(:,:,i), dMdm(:,:,i), dSdm(:,:,:,i), dVdm(:,:,:,i), dMds(:,:,:,i), dSds(:,:,:,:,i), dVds(:,:,:,:,i)] = gp1d_odetest(dynmodel, m, s);
-        
-        end
-%         dMds
-%         numerical = zeros(E,length(x));
-%         for i = 1:E
-%            gradient_tmp = M(i,:);
-%            gradient_tmp = gradient_tmp(:)';
-%            numerical(i,:) = gradient(gradient_tmp,dt);
-%         end
-%         numerical = numerical(:,2:end-1);
-%         if sc_i ~= sr_i
-%             analytic  = dMds(:, sc_i, sr_i, :);
-%         else
-%             analytic  = dMds(:, sc_i, sr_i, :);
-%         end
+% error = zeros(E,length(x)-2);
+% for sc_i = 1:D
+%     for sr_i = 1:D
+%         for i = 1:length(x)
+%         m = M0;
+%         s = S0;
+% 
+%     %     m(m_i) = m(m_i) + x(i);
+%         s(sc_i,sr_i) = s(sc_i,sr_i) + x(i);
+%         s(sr_i,sc_i) = s(sc_i,sr_i);
 %         
-%         analytic  = reshape(analytic,[E,size(analytic,4)]);
-%         analytic  = analytic(:,2:end-1);numerical
-%     disp('--------------------------');
-%     analytic - numerical 
-%     disp('--------------------------');
-%         if ~isreal(analytic - numerical)
-%             if ~isreal(analytic)
-%                 disp('analytic complex!!');
-%             else
-%                 disp('numerical complex!!');
-%             end
-%             keyboard;
-%         end
-%         error = error + abs(analytic - numerical);
-    
-%dSds
-%         numerical = zeros(E*E,length(x));
-%         for i = 1:E
-%             for j=1:E
-%                gradient_tmp = S(i,j,:);
-%                gradient_tmp = gradient_tmp(:)';
-%                numerical((j-1)*E+i,:) = gradient(gradient_tmp,dt);
-%             end
-%         end
-%         numerical = numerical(:,2:end-1);
-%         analytic  = dSds(:, :, sc_i, sr_i, :);
-%         analytic  = reshape(analytic,[E*E,size(analytic,5)]);
-%         analytic  = analytic(:,2:end-1);
-% %         numerical
-% %     disp('--------------------------');
-%     analytic - numerical 
-%     disp('--------------------------');
-
-% %dVds
-%         numerical = zeros(D*E, length(x));
-%         for i = 1:D
-%             for j = 1:E
-%                gradient_tmp = V(i,j,:);
-%                gradient_tmp = gradient_tmp(:)';
-%                numerical((j-1)*D+i,:) = gradient(gradient_tmp,dt);
-%             end
-%         end
-%         numerical = numerical(:,2:end-1);
-%         analytic  = dVds(:, :, sc_i,sr_i, :);
-%        
+%         [M(:,i), S(:,:,i), V(:,:,i), dMdm(:,:,i), dSdm(:,:,:,i), dVdm(:,:,:,i), dMds(:,:,:,i), dSds(:,:,:,:,i), dVds(:,:,:,:,i)] = gp1d_odetest(dynmodel, m, s);
 %         
-%         analytic  = reshape(analytic,[D*E,size(analytic,5)]);
-%         analytic  = analytic(:,2:end-1);
-% %         numerical
+%         end
+% %         dMds
+% %         numerical = zeros(E,length(x));
+% %         for i = 1:E
+% %            gradient_tmp = M(i,:);
+% %            gradient_tmp = gradient_tmp(:)';
+% %            numerical(i,:) = gradient(gradient_tmp,dt);
+% %         end
+% %         numerical = numerical(:,2:end-1);
+% %         if sc_i ~= sr_i
+% %             analytic  = dMds(:, sc_i, sr_i, :);
+% %         else
+% %             analytic  = dMds(:, sc_i, sr_i, :);
+% %         end
+% %         
+% %         analytic  = reshape(analytic,[E,size(analytic,4)]);
+% %         analytic  = analytic(:,2:end-1);numerical
 % %     disp('--------------------------');
-%     analytic - numerical 
-%     disp('--------------------------');
-%         disp('--------------------------');
-    end
-end
+% %     analytic - numerical 
+% %     disp('--------------------------');
+% %         if ~isreal(analytic - numerical)
+% %             if ~isreal(analytic)
+% %                 disp('analytic complex!!');
+% %             else
+% %                 disp('numerical complex!!');
+% %             end
+% %             keyboard;
+% %         end
+% %         error = error + abs(analytic - numerical);
+%     
+% %dSds
+% %         numerical = zeros(E*E,length(x));
+% %         for i = 1:E
+% %             for j=1:E
+% %                gradient_tmp = S(i,j,:);
+% %                gradient_tmp = gradient_tmp(:)';
+% %                numerical((j-1)*E+i,:) = gradient(gradient_tmp,dt);
+% %             end
+% %         end
+% %         numerical = numerical(:,2:end-1);
+% %         analytic  = dSds(:, :, sc_i, sr_i, :);
+% %         analytic  = reshape(analytic,[E*E,size(analytic,5)]);
+% %         analytic  = analytic(:,2:end-1);
+% % %         numerical
+% % %     disp('--------------------------');
+% %     analytic - numerical 
+% %     disp('--------------------------');
+% 
+% % %dVds
+% %         numerical = zeros(D*E, length(x));
+% %         for i = 1:D
+% %             for j = 1:E
+% %                gradient_tmp = V(i,j,:);
+% %                gradient_tmp = gradient_tmp(:)';
+% %                numerical((j-1)*D+i,:) = gradient(gradient_tmp,dt);
+% %             end
+% %         end
+% %         numerical = numerical(:,2:end-1);
+% %         analytic  = dVds(:, :, sc_i,sr_i, :);
+% %        
+% %         
+% %         analytic  = reshape(analytic,[D*E,size(analytic,5)]);
+% %         analytic  = analytic(:,2:end-1);
+% % %         numerical
+% % %     disp('--------------------------');
+% %     analytic - numerical 
+% %     disp('--------------------------');
+% %         disp('--------------------------');
+%     end
+% end
 % toc
 %%
 
