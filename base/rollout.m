@@ -77,7 +77,7 @@ for i = 1:H % --------------------------------------------- generate trajectory
     u(i,:) = policy.fcn(policy,s(poli),zeros(length(poli)));
   else
     if (isfield(dyn,'model')) && (~strcmp(dyn.model,'PILCO'))
-        u(i,:) = 0.2 * policy.maxU.*(2*rand(1,nU)-1);
+        u(i,:) = 0.3 * policy.maxU.*(2*rand(1,nU)-1);
     else
         u(i,:) = 0.3 * policy.maxU.*(2*rand(1,nU)-1);
     end
@@ -86,8 +86,8 @@ for i = 1:H % --------------------------------------------- generate trajectory
 
   % 2. Simulate dynamics -------------------------------------------------------
   if (nargin == 6) && (isfield(dyn,'model')) %&& (~strcmp(dyn.model,'PILCO'))
-    gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, state(plant.jointi)', zeros(length(plant.jointi),1), zeros(length(plant.jointi),1), dyn.robot.G, Vdot_0_control)';
-%     gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, s(plant.jointi), zeros(length(plant.jointi),1), zeros(length(plant.jointi),1), dyn.robot.G, Vdot_0_control)';
+%     gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, state(plant.jointi)', zeros(length(plant.jointi),1), zeros(length(plant.jointi),1), dyn.robot.G, Vdot_0_control)';
+    gravity_control = solveInverseDynamics(dyn.robot.A, dyn.robot.M, s(plant.jointi), zeros(length(plant.jointi),1), zeros(length(plant.jointi),1), dyn.robot.G, Vdot_0_control)';
   else
     gravity_control = zeros(1,length(policy.maxU));
   end

@@ -161,15 +161,11 @@ end
 % 4) centralize moments
 S = S - M*M';
 %% Initialization for robot dynamics
-persistent jointlist njoint dynamics OPTIONS ctrlfcn u0 par dt;
+persistent jointlist njoint  OPTIONS  dt;
 if isempty(jointlist)
-    dynamics    = @dynamics_kp_nop;
     OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
-    ctrlfcn     = str2func('zoh');   
-    par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
     jointlist   = gpmodel.jointi;
     njoint      = length(jointlist);
-    u0          = cell(1,njoint);
     dt = gpmodel.stepsize;
 end
 %% converting GP variables to global
@@ -194,6 +190,7 @@ for i = 1:D
          dVds_g(:,:,gp_list(i),gp_list(j)) = invscovsx * dVds(:,:,i,j);
     end
 end
+
 %% Robot Dynamics
 
 % n_span  = gpmodel.n_span;
@@ -203,8 +200,7 @@ q       = m(jointlist);
 qdot    = m(jointlist + njoint);
 tau     = m(end-njoint+1:end);
 
-for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
-[~, y] = ode45(dynamics, [0 dt/2 dt], m(1:(2*njoint)), OPTIONS, u0{:});
+[~, y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,tau(1),tau(2)), [0 dt/2 dt], m(1:(2*njoint)), OPTIONS);
 
 M(jointlist)            = M(jointlist) + (y(3,jointlist)' - q);
 M(jointlist + njoint)   = M(jointlist + njoint) +  (y(3,jointlist + njoint)' - qdot);
@@ -214,12 +210,12 @@ A = zeros(E,D_D);
 dt_tmp = 0.0000001;
 x = [-dt_tmp 0 dt_tmp];
 M_tmp = zeros(E,length(x));
+m_tmp_zero = m(dynamics_list);
 for i = 1:D_D
     for j = 1:length(x)
-        m_tmp = m;
+        m_tmp = m_tmp_zero;
         m_tmp(i) = m_tmp(i) + x(j);
-        for k = 1:njoint, u0{k} = @(t)ctrlfcn(m_tmp(2*njoint+k,:),t,par); end
-        [~,y_tmp] = ode45(dynamics, [0 dt/2 dt], m_tmp(1:(2*njoint)), OPTIONS, u0{:});
+        [~,y_tmp] = ode45(@(t,input)dynamics_kp_nop_not(t,input,m_tmp(2*njoint+1),m_tmp(2*njoint+2)), [0 dt/2 dt], m_tmp(1:(2*njoint)), OPTIONS);
         M_tmp(1:2*njoint,j) = [y_tmp(3,jointlist)' - m_tmp(jointlist);y_tmp(3,jointlist + njoint)' - m_tmp(jointlist + njoint)];
     end
     gradient_tmp = gradient(M_tmp,dt_tmp);
@@ -232,14 +228,13 @@ invscovsx(dynamics_list,1:end) = eye(D_D);
 % invscovsx = sparse(invscovsx);
 A_g       =  A * (invscovsx'); % E x D_g
 
-
-
 dMdm = dMdm_g + A_g;
 dMds = dMds_g;
 dSdm = dSdm_g;
 dSds = dSds_g;
 dVdm = dVdm_g;
 dVds = dVds_g;
+%%
 
 % 5) vectorize derivatives
 dMds = reshape(dMds,[E D_g*D_g]);
@@ -248,17 +243,11 @@ dSdm = reshape(dSdm,[E*E D_g]);
 dVds = reshape(dVds,[D_g*E D_g*D_g]);
 dVdm = reshape(dVdm,[D_g*E D_g]);
 
-end
+% 6) symmetrize variables dependent to variance
+% X=reshape(1:D_g*D_g,[D_g D_g]); XT=X'; dSds=(dSds+dSds(:,XT(:)))/2; 
+% dMds=(dMds+dMds(:,XT(:)))/2;
+% dVds=(dVds+dVds(:,XT(:)))/2;
+% X=reshape(1:E*E,[E E]); XT=X'; dSds=(dSds+dSds(XT(:),:))/2;
+% dSdm=(dSdm+dSdm(XT(:),:))/2; 
 
-function u = zoh(f, t, par) % **************************** zero-order hold
-d = par.delay;
-if d==0
-                  u = f;
-else
-  e = d/100; t0=t-(d-e/2);
-  if t<d-e/2,     u=f(1);
-  elseif t<d+e/2, u=(1-t0/e)*f(1) + t0/e*f(2);    % prevents ODE stiffness
-  else            u=f(2);
-  end
-end
 end

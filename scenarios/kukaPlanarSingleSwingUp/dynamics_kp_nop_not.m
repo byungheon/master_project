@@ -18,7 +18,7 @@
 %         q(2):           [rad]     angle of joints
 %         dq(2):          [rad/s]   angular velocity of joints
 
-function dz = dynamics_kp_nop(t,z,f1,f2)
+function dz = dynamics_kp_nop_not(t,z,f1,f2)
 %% Code
 
 % set up the system
@@ -29,8 +29,8 @@ if isempty(robot_kuka_planar_nop)
 end
 Vdot_0 = zeros(6,1); Vdot_0(6) = 0;
 tau = zeros(2,1);
-tau(1) = f1(t);
-tau(2) = f2(t);
+tau(1) = f1;
+tau(2) = f2;
 
 q = z(1:2);
 dq = z(3:4);

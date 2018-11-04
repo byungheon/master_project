@@ -107,16 +107,12 @@ end
 S = S - M*M';
 
 %% Initialization for robot dynamics
-persistent jointlist njoint dynamics OPTIONS ctrlfcn u0 par dt;
+persistent jointlist njoint  OPTIONS  dt;
 if isempty(jointlist)
-    dynamics    = @dynamics_kp_nop;
     OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
-    ctrlfcn     = str2func('zoh');   
-    par.dt = gpmodel.stepsize; par.delay = 0; par.tau = gpmodel.stepsize;
     jointlist   = gpmodel.jointi;
     njoint      = length(jointlist);
-    u0          = cell(1,njoint);
-    dt = gpmodel.stepsize;
+    dt          = gpmodel.stepsize;
 end
 %% converting GP variables to global
 % M,S,V
@@ -129,24 +125,9 @@ q       = m(jointlist);
 qdot    = m(jointlist + njoint);
 tau     = m(end-njoint+1:end);
 
-for j = 1:njoint, u0{j} = @(t)ctrlfcn(tau(j,:),t,par); end
-[~, y] = ode45(dynamics, [0 dt/2 dt], m(1:(2*njoint)), OPTIONS, u0{:});
+[~, y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,tau(1),tau(2)), [0 dt/2 dt], m(1:(2*njoint)), OPTIONS);
 
 M(jointlist)            = M(jointlist) +  (y(3,jointlist)' - q);
 M(jointlist + njoint)   = M(jointlist + njoint) +  (y(3,jointlist + njoint)' - qdot);
 
 end
-function u = zoh(f, t, par) % **************************** zero-order hold
-d = par.delay;
-if d==0
-                  u = f;
-else
-  e = d/100; t0=t-(d-e/2);
-  if t<d-e/2,     u=f(1);
-  elseif t<d+e/2, u=(1-t0/e)*f(1) + t0/e*f(2);    % prevents ODE stiffness
-  else            u=f(2);
-  end
-end
-end
-
-

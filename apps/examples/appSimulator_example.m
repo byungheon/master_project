@@ -280,6 +280,8 @@ kp = 2;
 kd = 0.1;
 q  = x0s1(1:n);
 dq = x0s1(n+1:2*n);
+x0s2 = x0s1;
+tic
 for i = 1:n_step
 %     U = solveInverseDynamics(A, M, q, zeros(3,1), zeros(3,1), G, Vdot_0);
 %     disp(U');
@@ -287,33 +289,55 @@ for i = 1:n_step
 % %     U = [U;0];
 %     U(1:6) = U(1:6) + kp * (q0(1:6) - q(1:6)) + kd * (-dq(1:6));
 %     disp(U')
-    U = zeros(2,1);
+%     U = zeros(2,1);
+%     U = -[60;70] + [120;140].* rand(2,1);
+%     ddq = solveForwardDynamics(A,M,q,dq,U,G, Vdot_0, robot.F);     
+%     dq = dq + ddq * dt;
+%     q  = q + dq * dt;
+%     dq = dq + ddq * dt;
+%     dq = dq + ddq * dt;
+    
     U = -[60;70] + [120;140].* rand(2,1);
-    ddq = solveForwardDynamics(A,M,q,dq,U,G, Vdot_0, robot.F);     
-    dq = dq + ddq * dt;
-    q  = q + dq * dt;
-%     dq = dq + ddq * dt;
-%     dq = dq + ddq * dt;
-    
-    
     
     for j = 1:nU, u0{j} = @(t)ctrlfcn(U(j,:),t,par); end
     [T1 y1] = ode45(dynamics1, [0 dt/2 dt], x0s1, OPTIONS, u0{:});
     x0s1 = y1(3,:)';
     
+    [T2 y2] = ode45(@(t,y)dynamics_kp_nop_not(t,y,U(1),U(2)), [0 dt/2 dt], x0s2, OPTIONS);
+    x0s2 = y2(3,:)';
     
-    trajectory1(:,i+1) = x0s1;
-    trajectory2(:,i+1) = [q;dq];
+%     if y1(3,:) == y2(3,:)
+%        disp('yeah!!');
+%     else
+%         disp('fuck');
+%     end
+%     trajectory1(:,i+1) = x0s1;
+%     trajectory2(:,i+1) = [q;dq];
     
 end
-close all
-for i = 1:2*n
-figure(i);
-plot(trajectory1(i,:));
-hold on;
-plot(trajectory2(i,:));
-legend('ode','simple');
+toc
+tic
+for i = 1:n_step
+
+    U = -[60;70] + [120;140].* rand(2,1);
+
+    [T2 y2] = ode45(@(t,y)dynamics_kp_nop_not(t,y,U(1),U(2)), [0 dt/2 dt], x0s2, OPTIONS);
+    x0s2 = y2(3,:)';
+    
+%     
+%     trajectory1(:,i+1) = x0s1;
+%     trajectory2(:,i+1) = [q;dq];
+    
 end
+toc
+% close all
+% for i = 1:2*n
+% figure(i);
+% plot(trajectory1(i,:));
+% hold on;
+% plot(trajectory2(i,:));
+% legend('ode','simple');
+% end
 %%
 
 

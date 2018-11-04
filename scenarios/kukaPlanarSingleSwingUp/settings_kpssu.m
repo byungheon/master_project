@@ -101,7 +101,7 @@ plant.angstd = mu0(1:2);  % mid point of each joint angle (we need to wrap up ea
 % 4. Set up the policy structure
 policy.fcn = @(policy,m,s)conCat(@congp,@gSat,policy,m,s); % controller 
                                                            % representation
-policy.maxU = [100 70];                                    % max. amplitude of 
+policy.maxU = [100 60];                                    % max. amplitude of 
                                                            % control
 [mm ss cc] = gTrig(mu0, S0, plant.angi);                   % represent angles 
 mm = [mu0; mm]; cc = S0*cc; ss = [S0 cc; cc' ss];          % in complex plane      
