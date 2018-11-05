@@ -44,11 +44,7 @@ if (isfield(dynmodel,'model') && ~strcmp(dynmodel.model,'PILCO'))
        
         local.delta(plant.jointi)           = local.qdotdelt;
         local.delta(jointi+length(jointi))  = local.qddotdelt;
-<<<<<<< HEAD
-        targets_temp(i,:)                   = targets_temp(i,:) - 0.5 * local.delta;
-=======
         targets_temp(i,:)                   = targets_temp(i,:) - dynmodel.dynratio * local.delta;
->>>>>>> 1a0c0946d0cbdb6110d35ce016c6cb67c455703e
     end
     clear local;
 end
