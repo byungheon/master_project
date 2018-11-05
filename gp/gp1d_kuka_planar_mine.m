@@ -180,10 +180,11 @@ S = S - M*M';
 %% Initialization for robot dynamics
 persistent jointlist njoint  OPTIONS  dt;
 if isempty(jointlist)
-    OPTIONS     = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
+    OPTIONS     = gpmodel.options;
     jointlist   = gpmodel.jointi;
     njoint      = length(jointlist);
     dt = gpmodel.stepsize;
+ 
 end
 %% converting GP variables to global
 % M,S,V
@@ -219,8 +220,8 @@ tau     = m(end-njoint+1:end);
 
 [~, y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,tau(1),tau(2)), [0 dt/2 dt], m(1:(2*njoint)), OPTIONS);
 
-M(jointlist)            = M(jointlist) + 0.5* (y(3,jointlist)' - q);
-M(jointlist + njoint)   = M(jointlist + njoint) + 0.5* (y(3,jointlist + njoint)' - qdot);
+M(jointlist)            = M(jointlist) + gpmodel.ratio * (y(3,jointlist)' - q);
+M(jointlist + njoint)   = M(jointlist + njoint) + gpmodel.ratio * (y(3,jointlist + njoint)' - qdot);
 
 A = zeros(E,D_D);
 
@@ -243,7 +244,7 @@ end
 invscovsx = zeros(D_g,D_D);
 invscovsx(dynamics_list,1:end) = eye(D_D);
 % invscovsx = sparse(invscovsx);
-A_g       =  0.5 * A * (invscovsx'); % E x D_g
+A_g       = gpmodel.ratio * A * (invscovsx'); % E x D_g
 
 dMdm = dMdm_g + A_g;
 dMds = dMds_g;
