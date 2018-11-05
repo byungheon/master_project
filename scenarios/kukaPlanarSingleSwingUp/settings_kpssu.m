@@ -73,7 +73,7 @@ dt = 0.02;                % [s] sampling time
 T = 5.0;                  % [s] prediction time
 H = ceil(T/dt);           % prediction steps (optimization horizon)
 maxH = H;                 % max pred horizon
-nc = 200;                 % size of controller training set
+nc = 250;                 % size of controller training set
 s = (0.01^2) * ones(1,6);% initial state variances
 S0 = diag(s);             % initial state covariance matrix
 mu0 = zeros(6,1);        % initial state mean
@@ -126,6 +126,8 @@ cost.target(6)  = pi;
 dynmodel.model = 'MINE';            % dynamics model: PILCO, PIREM, MINE
 dynmodel.jointi = jointi;     % robot joint index 
 dynmodel.n_span = 50;        % number of lin space for derivative compensation
+dynmodel.options = odeset('RelTol', 1e-12, 'AbsTol', 1e-12);
+dynmodel.dynratio = 0.5;
 switch dynmodel.model
     case 'PILCO'
         dynmodel.fcn = @gp1d;
