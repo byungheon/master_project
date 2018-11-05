@@ -127,7 +127,7 @@ tau     = m(end-njoint+1:end);
 
 [~, y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,tau(1),tau(2)), [0 dt/2 dt], m(1:(2*njoint)), OPTIONS);
 
-M(jointlist)            = M(jointlist) + gpmodel.ratio * (y(3,jointlist)' - q);
-M(jointlist + njoint)   = M(jointlist + njoint) + gpmodel.ratio * (y(3,jointlist + njoint)' - qdot);
+M(jointlist)            = M(jointlist) + gpmodel.dynratio * (y(3,jointlist)' - q);
+M(jointlist + njoint)   = M(jointlist + njoint) + gpmodel.dynratio * (y(3,jointlist + njoint)' - qdot);
 
 end
