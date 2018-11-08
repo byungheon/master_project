@@ -211,34 +211,52 @@ end
 
 %% Robot Dynamics
 
-% n_span  = gpmodel.n_span;
+% % n_span  = gpmodel.n_span;
 D_D     = njoint*3;
 dynamics_list = [jointlist njoint + jointlist [D_g-njoint+1:D_g]];
 q       = m(jointlist);
 qdot    = m(jointlist + njoint);
 tau     = m(end-njoint+1:end);
+% 
+% [~, y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,tau(1),tau(2)), [0 dt/2 dt], m(1:(2*njoint)), OPTIONS);
+% 
+% M(jointlist)            = M(jointlist) + gpmodel.dynratio * (y(3,jointlist)' - q);
+% M(jointlist + njoint)   = M(jointlist + njoint) + gpmodel.dynratio * (y(3,jointlist + njoint)' - qdot);
+% 
+% A = zeros(E,D_D);
+% 
+% dt_tmp = 0.0000001;
+% x = [-dt_tmp 0 dt_tmp];
+% M_tmp = zeros(E,length(x));
+% m_tmp_zero = m(dynamics_list);
+% for i = 1:D_D
+%     for j = 1:length(x)
+%         m_tmp = m_tmp_zero;
+%         m_tmp(i) = m_tmp(i) + x(j);
+%         [~,y_tmp] = ode45(@(t,input)dynamics_kp_nop_not(t,input,m_tmp(2*njoint+1),m_tmp(2*njoint+2)), [0 dt/2 dt], m_tmp(1:(2*njoint)), OPTIONS);
+%         M_tmp(1:2*njoint,j) = [y_tmp(3,jointlist)' - m_tmp(jointlist);y_tmp(3,jointlist + njoint)' - m_tmp(jointlist + njoint)];
+%     end
+%     gradient_tmp = gradient(M_tmp,dt_tmp);
+%     A(:,i) = gradient_tmp(:,2);
+% end
 
-[~, y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,tau(1),tau(2)), [0 dt/2 dt], m(1:(2*njoint)), OPTIONS);
+qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
+[dqddotdq, dqddotdqdot, dqddotdtau] = solveForwardDynamicsDerivatives_pilco(gpmodel.robot.A,gpmodel.robot.M,q,qdot,qddot,gpmodel.robot.G,gpmodel.Vdot0,gpmodel.robot.F);
 
-M(jointlist)            = M(jointlist) + gpmodel.dynratio * (y(3,jointlist)' - q);
-M(jointlist + njoint)   = M(jointlist + njoint) + gpmodel.dynratio * (y(3,jointlist + njoint)' - qdot);
+dqddotdq            = dqddotdq * dt;
+dqddotdqdot         = dqddotdqdot * dt;
+dqddotdtau          = dqddotdtau * dt;
 
-A = zeros(E,D_D);
+A                                        = zeros(E,D_D);
+A(jointlist,jointlist)                   = dqddotdq * dt/2;
+A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * dt + dqddotdqdot * dt/2;
+A(jointlist,end-njoint+1:end)            = dqddotdtau * dt/2;
+A(jointlist + njoint,jointlist)          = dqddotdq;
+A(jointlist + njoint,jointlist + njoint) = dqddotdqdot;
+A(jointlist + njoint,end-njoint+1:end)   = dqddotdtau;
 
-dt_tmp = 0.0000001;
-x = [-dt_tmp 0 dt_tmp];
-M_tmp = zeros(E,length(x));
-m_tmp_zero = m(dynamics_list);
-for i = 1:D_D
-    for j = 1:length(x)
-        m_tmp = m_tmp_zero;
-        m_tmp(i) = m_tmp(i) + x(j);
-        [~,y_tmp] = ode45(@(t,input)dynamics_kp_nop_not(t,input,m_tmp(2*njoint+1),m_tmp(2*njoint+2)), [0 dt/2 dt], m_tmp(1:(2*njoint)), OPTIONS);
-        M_tmp(1:2*njoint,j) = [y_tmp(3,jointlist)' - m_tmp(jointlist);y_tmp(3,jointlist + njoint)' - m_tmp(jointlist + njoint)];
-    end
-    gradient_tmp = gradient(M_tmp,dt_tmp);
-    A(:,i) = gradient_tmp(:,2);
-end
+M(jointlist)            = M(jointlist) + gpmodel.dynratio *(qdot + qddot * dt/2) * dt;
+M(jointlist + njoint)   = M(jointlist + njoint) + gpmodel.dynratio * qddot * dt;
 
 %% converting Dynamics variables to global
 invscovsx = zeros(D_g,D_D);

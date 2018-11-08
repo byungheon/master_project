@@ -456,7 +456,7 @@ for m_i = 1:D
     
     m(m_i) = m(m_i) + x(i);
     
-    [M(:,i), S(:,:,i), V(:,:,i), dMdm(:,:,i), dSdm(:,:,:,i), dVdm(:,:,:,i), dMds(:,:,:,i), dSds(:,:,:,:,i), dVds(:,:,:,:,i)] = gp1d_odetest(dynmodel, m, s);
+    [M(:,i), S(:,:,i), V(:,:,i), dMdm(:,:,i), dSdm(:,:,:,i), dVdm(:,:,:,i), dMds(:,:,:,i), dSds(:,:,:,:,i), dVds(:,:,:,:,i)] = gp1d_test(dynmodel, m, s);
 
     end
 

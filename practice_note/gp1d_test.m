@@ -121,11 +121,13 @@ for i = 1:njoint
 end
 
 M = zeros(E,1);
-M(jointlist)            = qdot * gpmodel.stepsize;
 M(jointlist + njoint)   = qddot * gpmodel.stepsize;
+M(jointlist)            = (qdot + qddot * gpmodel.stepsize/2) * gpmodel.stepsize;
 
 A                                        = zeros(E,D);
-A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize;
+A(jointlist,jointlist)                   = dqddotdq * gpmodel.stepsize/2;
+A(jointlist,jointlist + njoint)          = eye(njoint,njoint) * gpmodel.stepsize + dqddotdqdot * gpmodel.stepsize/2;
+A(jointlist,end-njoint+1:end)            = dqddotdtau * gpmodel.stepsize/2;
 A(jointlist + njoint,jointlist)          = dqddotdq;
 A(jointlist + njoint,jointlist + njoint) = dqddotdqdot;
 A(jointlist + njoint,end-njoint+1:end)   = dqddotdtau;

@@ -126,7 +126,7 @@ cost.target(6)  = pi;
 dynmodel.model = 'MINE';            % dynamics model: PILCO, PIREM, MINE
 dynmodel.jointi = jointi;     % robot joint index 
 dynmodel.n_span = 50;        % number of lin space for derivative compensation
-dynmodel.options = odeset('RelTol', 1e-12, 'AbsTol', 1e-12);
+dynmodel.options = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
 dynmodel.dynratio = 0.5;
 switch dynmodel.model
     case 'PILCO'

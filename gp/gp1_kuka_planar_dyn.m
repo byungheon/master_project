@@ -145,10 +145,15 @@ V = invscovsx * V;
 q       = m(jointlist);
 qdot    = m(jointlist + njoint);
 tau     = m(end-njoint+1:end);
+% 
+% [~, y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,tau(1),tau(2)), [0 dt/2 dt], m(1:(2*njoint)), OPTIONS);
+% 
+% M(jointlist)            = M(jointlist) + gpmodel.dynratio * (y(3,jointlist)' - q);
+% M(jointlist + njoint)   = M(jointlist + njoint) + gpmodel.dynratio * (y(3,jointlist + njoint)' - qdot);
 
-[~, y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,tau(1),tau(2)), [0 dt/2 dt], m(1:(2*njoint)), OPTIONS);
+qddot   = solveForwardDynamics(gpmodel.robot.A,gpmodel.robot.M,q,qdot,tau,gpmodel.robot.G,gpmodel.Vdot0, gpmodel.robot.F);
 
-M(jointlist)            = M(jointlist) + gpmodel.dynratio * (y(3,jointlist)' - q);
-M(jointlist + njoint)   = M(jointlist + njoint) + gpmodel.dynratio * (y(3,jointlist + njoint)' - qdot);
+M(jointlist)            = M(jointlist) + gpmodel.dynratio *(qdot + qddot * dt/2) * dt;
+M(jointlist + njoint)   = M(jointlist + njoint) + gpmodel.dynratio *qddot * dt;
 
 end
