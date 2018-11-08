@@ -35,15 +35,16 @@ if (isfield(dynmodel,'model') && ~strcmp(dynmodel.model,'PILCO'))
         local.tau = inputs_temp(i,end-Du+1:end)';
         
 %         for ii = 1:length(jointi), local.u0{ii} = @(t)local.ctrlfcn(local.tau(ii,:),t,local.par); end
-        [~, local.y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,local.tau(1),local.tau(2)), [0 dt/2 dt], joint_temp(i,:)', local.OPTIONS);
+%         [~, local.y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,local.tau(1),local.tau(2)), [0 dt/2 dt], joint_temp(i,:)', local.OPTIONS);
 %         local.qddot     = solveForwardDynamics(dynmodel.robot.A,dynmodel.robot.M,joint_temp(i,jointi)',joint_temp(i,length(jointi) + jointi)',local.tau,dynmodel.robot.G,dynmodel.Vdot0, dynmodel.robot.F);        
 %         local.qdotdelt  = joint_temp(i,length(jointi) + jointi) * dt;
 %         local.qddotdelt = local.qddot' * dt;
-        local.qdotdelt  = local.y(3,jointi) - joint_temp(i,jointi);
-        local.qddotdelt = local.y(3,jointi + length(jointi)) - joint_temp(i,jointi + length(jointi));
-       
-        local.delta(plant.jointi)           = local.qdotdelt;
-        local.delta(jointi+length(jointi))  = local.qddotdelt;
+%         local.qdotdelt  = local.y(3,jointi) - joint_temp(i,jointi);
+%         local.qddotdelt = local.y(3,jointi + length(jointi)) - joint_temp(i,jointi + length(jointi));
+        local.qddot   = solveForwardDynamics(dynmodel.robot.A,dynmodel.robot.M,joint_temp(i,jointi)',joint_temp(i,jointi + length(jointi))',local.tau,dynmodel.robot.G,dynmodel.Vdot0, dynmodel.robot.F);
+        
+        local.delta(plant.jointi)           = (joint_temp(i,jointi + length(jointi))' + local.qddot * dt/2) * dt;
+        local.delta(jointi+length(jointi))  = local.qddot * dt;
         targets_temp(i,:)                   = targets_temp(i,:) - dynmodel.dynratio * local.delta;
     end
     clear local;
