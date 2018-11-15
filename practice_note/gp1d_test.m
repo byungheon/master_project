@@ -80,7 +80,9 @@ end
 % M = zeros(E,1);
 % M(jointlist)            = (y(n_span+1,jointlist)' - q);
 % M(jointlist + njoint)   = (y(n_span+1,jointlist + njoint)' - qdot);
-gpmodel.stepsize = 1;
+gpmodel.stepsize = 0.5;
+dynratio = 0.5;
+dt = gpmodel.stepsize;
 q       = m(jointlist);
 qdot    = m(jointlist + njoint);
 tau     = m(end-njoint+1:end);
@@ -121,8 +123,8 @@ for i = 1:njoint
 end
 
 M = zeros(E,1);
-M(jointlist + njoint)   = qddot * gpmodel.stepsize;
-M(jointlist)            = (qdot + qddot * gpmodel.stepsize/2) * gpmodel.stepsize;
+M(jointlist + njoint)   = dynratio * qddot * gpmodel.stepsize;
+M(jointlist)            = dynratio * (qdot + qddot * gpmodel.stepsize/2) * gpmodel.stepsize;
 
 A                                        = zeros(E,D);
 A(jointlist,jointlist)                   = dqddotdq * gpmodel.stepsize/2;
@@ -131,24 +133,34 @@ A(jointlist,end-njoint+1:end)            = dqddotdtau * gpmodel.stepsize/2;
 A(jointlist + njoint,jointlist)          = dqddotdq;
 A(jointlist + njoint,jointlist + njoint) = dqddotdqdot;
 A(jointlist + njoint,end-njoint+1:end)   = dqddotdtau;
+A = A * dynratio;
 
 dAdm = zeros(E,D,D);
 for i = 1:njoint
+    dAdm(jointlist,jointlist,i)                         = dFDdqdq(:,:,i) * dt /2;
+    dAdm(jointlist,jointlist + njoint,i)                = dFDdqdotdq(:,:,i) * dt /2;
+    dAdm(jointlist,end-njoint+1:end,i)                  = dFDdtaudq(:,:,i) * dt /2;
     dAdm(jointlist + njoint,jointlist,i)                = dFDdqdq(:,:,i);
     dAdm(jointlist + njoint,jointlist + njoint,i)       = dFDdqdotdq(:,:,i);
     dAdm(jointlist + njoint,end-njoint+1:end,i)         = dFDdtaudq(:,:,i);   
 end
 for i = 1:njoint
+    dAdm(jointlist,jointlist,i+njoint)                         = dFDdqdqdot(:,:,i) * dt /2;
+    dAdm(jointlist,jointlist + njoint,i+njoint)                = dFDdqdotdqdot(:,:,i) * dt /2;
+    dAdm(jointlist,end-njoint+1:end,i+njoint)                  = dFDdtaudqdot(:,:,i) * dt /2;
     dAdm(jointlist + njoint,jointlist,i+njoint)             = dFDdqdqdot(:,:,i);
     dAdm(jointlist + njoint,jointlist + njoint,i+njoint)    = dFDdqdotdqdot(:,:,i);
     dAdm(jointlist + njoint,end-njoint+1:end,i+njoint)      = dFDdtaudqdot(:,:,i);   
 end
 for i = 1:njoint
+    dAdm(jointlist,jointlist,i+end-njoint)                         = dFDdqdtau(:,:,i) * dt /2;
+    dAdm(jointlist,jointlist + njoint,i+end-njoint)                = dFDdqdotdtau(:,:,i) * dt /2;
+    dAdm(jointlist,end-njoint+1:end,i+end-njoint)                  = dFDdtaudtau(:,:,i) * dt /2;
     dAdm(jointlist + njoint,jointlist,i+end-njoint)             = dFDdqdtau(:,:,i);
     dAdm(jointlist + njoint,jointlist + njoint,i+end-njoint)    = dFDdqdotdtau(:,:,i);
     dAdm(jointlist + njoint,end-njoint+1:end,i+end-njoint)      = dFDdtaudtau(:,:,i);   
 end
-
+dAdm = dAdm * dynratio;
 
 S =  A * s * (A');
 S = (S + S')/2;
