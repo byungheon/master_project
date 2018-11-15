@@ -20,15 +20,20 @@ function qddot = solveForwardDynamicsAlt(A,M,q,qdot,tau,G,varargin)
     %% Initialization
     n     = size(q,1);          % number of joints
     
-    V_0    = zeros(6,1);        % base velocity
-    Vdot_0 = zeros(6,1);        % base acceleration
+    Vdot_0  = zeros(6,1);        % base acceleration
+    friction_coulomb = zeros(n,1); % coulomb friction's coefficient  
+    friction_viscous = zeros(n,1); % viscous friction's coefficient 
     if     nargin == 6
     elseif nargin == 7
         Vdot_0  = varargin{1};  % optional base acceleration
+    elseif nargin == 8
+        Vdot_0           = varargin{1};         % optional base acceleration
+        friction_coulomb = varargin{2}(:,1);    % optional coulomb friction's coefficient  
+        friction_viscous = varargin{2}(:,2);    % optional viscous friction's coefficient
     end
    %%
     M_q = zeros(n,n);
-    h_q = solveInverseDynamics(A,M,q,qdot,zeros(n,1),G,Vdot_0);
+    h_q = solveInverseDynamics(A,M,q,qdot,zeros(n,1),G,Vdot_0,[friction_coulomb friction_viscous]);
     for i = 1:n
         qddot = zeros(n,1);
         qddot(i) = 1;
