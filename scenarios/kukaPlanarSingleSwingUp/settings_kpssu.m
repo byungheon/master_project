@@ -30,8 +30,8 @@ warning('off','all'); format short; format compact
 % end
 
 % fix the random seed to be able to re-run the experiment
-rand('seed', 20); randn('state', 5); 
-
+% rand('seed', 20); randn('state', 5); 
+rand('seed', 8); randn('state', 8); 
 
 % 1. Define state and important indices
 
@@ -70,7 +70,7 @@ difi = [1 2 3 4 5 6];
 jointi = [1 2];
 % 2. Set up the scenario
 dt = 0.02;                % [s] sampling time
-T = 5.0;                  % [s] prediction time
+T = 4.0;                  % [s] prediction time
 H = ceil(T/dt);           % prediction steps (optimization horizon)
 maxH = H;                 % max pred horizon
 nc = 200;                 % size of controller training set
@@ -84,7 +84,7 @@ K = 1;                    % number of initial states for which we optimize
 
 % 3. Set up the plant structure
 plant.dynamics = @dynamics_kpssu;           % handle to dynamics ODE function
-plant.noise = diag(ones(1,6)*0.01.^2);    % measurement noise
+plant.noise = diag(s);    % measurement noise
 plant.dt = dt;
 plant.ctrl = @zoh;        % controller is zero order hold
 plant.odei = odei;        % indices to the varibles for the ode solver
@@ -127,7 +127,7 @@ dynmodel.model = 'MINE';            % dynamics model: PILCO, PIREM, MINE
 dynmodel.jointi = jointi;     % robot joint index 
 dynmodel.n_span = 50;        % number of lin space for derivative compensation
 dynmodel.options = odeset('RelTol', 1e-3, 'AbsTol', 1e-3);
-dynmodel.dynratio = 0.5;
+dynmodel.dynratio = 0.4;
 switch dynmodel.model
     case 'PILCO'
         dynmodel.fcn = @gp1d;
