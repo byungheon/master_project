@@ -35,7 +35,7 @@ if (isfield(dynmodel,'model') && ~strcmp(dynmodel.model,'PILCO'))
         local.tau = inputs_temp(i,end-Du+1:end)';
         
 %         [~, local.y] = ode45(@(t,input)dynamics_kp_nop_not(t,input,local.tau(1),local.tau(2)), [0 dt/2 dt], joint_temp(i,:)', local.OPTIONS);
-%         
+%
 %         local.qdotdelt  = local.y(3,jointi) - joint_temp(i,jointi);
 %         local.qddotdelt = local.y(3,jointi + length(jointi)) - joint_temp(i,jointi + length(jointi));
 %         

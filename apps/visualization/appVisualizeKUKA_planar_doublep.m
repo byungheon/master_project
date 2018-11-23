@@ -6,31 +6,32 @@
 %  trajectory   robot trajectory to visualize    7*num_time
 
 %% Implementation
-function appVisualizeKUKA_planar(varargin)
+function appVisualizeKUKA_planar_doublep(varargin)
     %% Robot Init
-    robot = makeKukaR820_planar();
+    robot = makeKukaR820_doublep();
     dt_standard = 0.1;
     dt = dt_standard;
     n = robot.dof;
-    T = zeros(4,4,8);
-    
-    trajectory = zeros(3,1);
+    T = zeros(4,4,9);
+    bPilco = false;
+    trajectory = zeros(4,1);
     if nargin > 0
         if size(varargin{1},1) == n
             trajectory = varargin{1};
         else
             error('number of the joints and the trajectory does not match');
         end
+        if nargin == 2
+           dt    = varargin{2};
+        elseif nargin > 2
+            bPilco = true;
+            cost = varargin{2};
+            text1 = varargin{3};
+            text2 = varargin{4};
+            dt    = varargin{5};
+        end
     end
-    if(nargin > 2)
-        bPilco = true;
-        cost = varargin{2};
-        text1 = varargin{3};
-        text2 = varargin{4};
-        dt    = varargin{5};
-    else
-        bPilco = false;
-    end
+
     if dt_standard/dt < 1
         ratio = 1;
     else
@@ -45,7 +46,7 @@ function appVisualizeKUKA_planar(varargin)
     T_vase = robot.M_zero(:,:,1) * exp_se3(robot.A_zero(:,1)*robot.q_zero(1));
     fv_base.vertices = (T_vase(1:3,1:3)*fv_base.vertices' + T_vase(1:3,4)*ones(1,size(fv_base.vertices,1)))';
     
-    for i = 1:8
+    for i = 1:9
         fv_zero{i}  = stlread(['link_' num2str(i) '.STL']);
     end
     T_temp = [-1 0 0 0.04428;
@@ -55,12 +56,15 @@ function appVisualizeKUKA_planar(varargin)
     TempVectices = ones(4,size(fv_zero{8}.vertices,1));
     TempVectices(1:3,:) = fv_zero{8}.vertices';
     TempVectices2 = inverse_SE3(T_temp) * TempVectices;
+%     T_temp = eye(4); T_temp(1:3,4) = [0;0.3;0];
+%     TempVectices3 = T_temp * TempVectices2;
     fv_zero{8}.vertices = TempVectices2(1:3,:)';
+    fv_zero{9}.vertices = fv_zero{8}.vertices;
     
     T0 = eye(4,4);
     fv = fv_zero;
     j = 1;
-    for i = 1:7
+    for i = 1:8
         T0 = T0 * robot.M_zero(:,:,i) * exp_se3(robot.A_zero(:,i)*robot.q_zero(i));
         fv{j}.vertices = (T0(1:3,1:3)*fv{j}.vertices' + T0(1:3,4)*ones(1,size(fv{j}.vertices,1)))';
         if i == 6
@@ -73,7 +77,7 @@ function appVisualizeKUKA_planar(varargin)
         end
         j = j+1;
     end
-
+    
     %% Render
     % The model is rendered with a PATCH graphics object. We also add some dynamic
     % lighting, and adjust the material properties to change the specular
@@ -87,12 +91,12 @@ function appVisualizeKUKA_planar(varargin)
     hold on;
 %     view([0 0]);
     axis equal;
-    axis([-1 1 -1 1 -1.3 1.1]);
+    axis([-1.25 1.25 -1 1.3 -1.3 1.1]);
     xlabel('x'); ylabel('y'); zlabel('z');
     if bPilco
         reward = zeros(num_time,1);
         for i = 1:num_time
-            reward(i) = 1-cost.fcn(cost, [trajectory(1:2,i); zeros(3,1); trajectory(3,i) + trajectory(1,i) - trajectory(2,i)],zeros(6));
+            reward(i) = 1-cost.fcn(cost, [trajectory(1:2,i); zeros(4,1); trajectory(3,i) + trajectory(1,i) - trajectory(2,i);trajectory(4,i) + trajectory(3,i) + trajectory(1,i) - trajectory(2,i)],zeros(8));
         end
         text(0,-0.7, text1,'fontsize', 12);
         text(0,-0.9, text2,'fontsize', 12);
@@ -105,12 +109,13 @@ function appVisualizeKUKA_planar(varargin)
                  'AmbientStrength', 0.15);
 
     % draw 7 links
-    color = ones(8,3)*0.8;
+    color = ones(9,3)*0.8;
     color(2,:) = [246 120 40]/255;
     color(6,:) = [246 120 40]/255;
     color(8,:) = ones(1,3)*0.2;
-
-    for i = 1:8
+    color(9,:) = ones(1,3)*0.2;
+    
+    for i = 1:9
         render_part{i} = patch(fv{i},'FaceColor',  color(i,:), ...
                  'EdgeColor',       'none',        ...
                  'FaceLighting',    'gouraud',     ...
@@ -120,6 +125,7 @@ function appVisualizeKUKA_planar(varargin)
     % draw end-effector
     end_effector_M = eye(4);
     end_effector_M(3,4) = 0.125;
+    end_effector_M(2,4) = 0.3;
     end_effector_T = T0 * end_effector_M;
     end_effector = plot_SE3(end_effector_T);
 
@@ -131,35 +137,33 @@ function appVisualizeKUKA_planar(varargin)
     view([-15 15]);
     getframe;
     
-    temp_traj               = zeros(7,num_time);
-    temp_traj([2,4,7],:)    = trajectory;
+    temp_traj                   = zeros(8,num_time);
+    temp_traj([2,4,7,8],:)      = trajectory;
     modified_traj = temp_traj + repmat(robot.q_zero,1,num_time);
     %% Animation Loop
-%     while(1)
-        for time = 1:num_time
-            j = 1;
-            T0 = eye(4,4);
-            for i = 1:7
-                T0 = T0 * robot.M_zero(:,:,i) * exp_se3(robot.A_zero(:,i)*modified_traj(i,time));
-                T(:,:,i) = T0;
-                fv{j}.vertices = (T(1:3,1:3,i)*fv_zero{j}.vertices' + T(1:3,4,i)*ones(1,size(fv_zero{j}.vertices,1)))';
-                set(render_part{j}, 'Vertices', fv{j}.vertices);
-                if i == 6
-                    j = j+1;
-                    T_temp = T(:,:,i) * [1  0  0  0
-                      0  0  1  0
-                      0  -1 0  0
-                      0  0  0  1];
-                    fv{j}.vertices = (T_temp(1:3,1:3)*fv_zero{j}.vertices' + T_temp(1:3,4)*ones(1,size(fv_zero{j}.vertices,1)))';
-                    set(render_part{j}, 'Vertices', fv{j}.vertices);
-                end
+    for time = 1:num_time
+        j = 1;
+        T0 = eye(4,4);
+        for i = 1:8
+            T0 = T0 * robot.M_zero(:,:,i) * exp_se3(robot.A_zero(:,i)*modified_traj(i,time));
+            T(:,:,i) = T0;
+            fv{j}.vertices = (T(1:3,1:3,i)*fv_zero{j}.vertices' + T(1:3,4,i)*ones(1,size(fv_zero{j}.vertices,1)))';
+            set(render_part{j}, 'Vertices', fv{j}.vertices);
+            if i == 6
                 j = j+1;
+                T_temp = T(:,:,i) * [1  0  0  0
+                  0  0  1  0
+                  0  -1 0  0
+                  0  0  0  1];
+                fv{j}.vertices = (T_temp(1:3,1:3)*fv_zero{j}.vertices' + T_temp(1:3,4)*ones(1,size(fv_zero{j}.vertices,1)))';
+                set(render_part{j}, 'Vertices', fv{j}.vertices);
             end
-
-            end_effector_T = T(:,:,7) * end_effector_M;
-            plot_SE3(end_effector_T, end_effector);
-            
-            getframe;
+            j = j+1;
         end
-%     end
+
+        end_effector_T = T(:,:,8) * end_effector_M;
+        plot_SE3(end_effector_T, end_effector);
+
+        getframe;
+    end
 end
