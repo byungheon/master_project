@@ -44,7 +44,7 @@ mu0Sim(odei,:) = mu0; S0Sim(odei,odei) = S0;
 mu0Sim = mu0Sim(dyno); S0Sim = S0Sim(dyno,dyno);
 
 % 3. Controlled learning (N iterations)
-for j = 2:N
+for j = 1:N
   tic
   trainDynModel;   % train (GP) dynamics model
   learnPolicy;     % learn policy

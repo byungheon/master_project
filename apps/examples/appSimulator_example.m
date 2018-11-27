@@ -257,7 +257,7 @@ q0 = zeros(n,1);
 qdot0 = zeros(n,1);
 qddot0 = zeros(n,1);
 
-dt = 0.005;
+dt = 0.02;
 T  = 5;
 n_step = ceil(T/dt);
 dynamics1 = @dynamics_kp_nop;
@@ -272,9 +272,13 @@ Vdot_0 = zeros(6,1);
 Vdot_0(6) = 9.82;
 trajectory1 = zeros(2*n,n_step+1);
 trajectory2 = zeros(2*n,n_step+1);
+trajectory3 = trajectory2;
+trajectory4 = trajectory3;
 
 trajectory1(:,1) = x0s1;
 trajectory2(:,1) = x0s2;
+trajectory3(:,1) = x0s2;
+trajectory4(:,1) = x0s2;
 
 kp = 2;
 kd = 0.1;
@@ -282,6 +286,10 @@ q  = x0s1(1:n);
 dq = x0s1(n+1:2*n);
 x0s2 = x0s1;
 tic
+q_newton = q;
+dq_newton = dq;
+q_sll = q;
+dq_sll = dq;
 for i = 1:n_step
 %     U = solveInverseDynamics(A, M, q, zeros(3,1), zeros(3,1), G, Vdot_0);
 %     disp(U');
@@ -291,18 +299,28 @@ for i = 1:n_step
 %     disp(U')
 %     U = zeros(2,1);
 %     U = -[60;70] + [120;140].* rand(2,1);
-%     ddq = solveForwardDynamics(A,M,q,dq,U,G, Vdot_0, robot.F);     
-%     dq = dq + ddq * dt;
-%     q  = q + dq * dt;
+
 %     dq = dq + ddq * dt;
 %     dq = dq + ddq * dt;
     
-    U = -[60;70] + [120;140].* rand(2,1);
+    U = -[40;30] + [80;60].* rand(2,1);
+%     U = [0;0];
+%     for j = 1:nU, u0{j} = @(t)ctrlfcn(U(j,:),t,par); end
+%     [T1 y1] = ode45(dynamics1, [0 dt/2 dt], x0s1, OPTIONS, u0{:});
+%     x0s1 = y1(3,:)';
+
+    ddq = solveForwardDynamics(A,M,q,dq,U,G, Vdot_0, robot.F);     
+    q  = q + (dq + ddq * dt/2) * dt;
+    dq = dq + ddq * dt;
     
-    for j = 1:nU, u0{j} = @(t)ctrlfcn(U(j,:),t,par); end
-    [T1 y1] = ode45(dynamics1, [0 dt/2 dt], x0s1, OPTIONS, u0{:});
-    x0s1 = y1(3,:)';
+    ddq = solveForwardDynamics(A,M,q_newton,dq_newton,U,G, Vdot_0, robot.F);     
+    q_newton  = q_newton + dq_newton * dt;
+    dq_newton = dq_newton + ddq * dt;
     
+    ddq = solveForwardDynamics(A,M,q_sll,dq_sll,U,G, Vdot_0, robot.F);     
+    dq_sll = dq_sll + ddq * dt;
+    q_sll  = q_sll + dq_sll * dt;
+
     [T2 y2] = ode45(@(t,y)dynamics_kp_nop_not(t,y,U(1),U(2)), [0 dt/2 dt], x0s2, OPTIONS);
     x0s2 = y2(3,:)';
     
@@ -311,33 +329,36 @@ for i = 1:n_step
 %     else
 %         disp('fuck');
 %     end
-%     trajectory1(:,i+1) = x0s1;
-%     trajectory2(:,i+1) = [q;dq];
-    
+    trajectory1(:,i+1) = x0s2;
+    trajectory2(:,i+1) = [q;dq];
+    trajectory3(:,i+1) = [q_newton;dq_newton];
+    trajectory4(:,i+1) = [q_sll;dq_sll];
 end
 toc
-tic
-for i = 1:n_step
-
-    U = -[60;70] + [120;140].* rand(2,1);
-
-    [T2 y2] = ode45(@(t,y)dynamics_kp_nop_not(t,y,U(1),U(2)), [0 dt/2 dt], x0s2, OPTIONS);
-    x0s2 = y2(3,:)';
-    
+% tic
+% for i = 1:n_step
+% 
+%     U = -[60;70] + [120;140].* rand(2,1);
+% 
+%     [T2 y2] = ode45(@(t,y)dynamics_kp_nop_not(t,y,U(1),U(2)), [0 dt/2 dt], x0s2, OPTIONS);
+%     x0s2 = y2(3,:)';
 %     
-%     trajectory1(:,i+1) = x0s1;
-%     trajectory2(:,i+1) = [q;dq];
-    
-end
-toc
-% close all
-% for i = 1:2*n
-% figure(i);
-% plot(trajectory1(i,:));
-% hold on;
-% plot(trajectory2(i,:));
-% legend('ode','simple');
+% %     
+% %     trajectory1(:,i+1) = x0s1;
+% %     trajectory2(:,i+1) = [q;dq];
+%     
 % end
+% toc
+close all
+for i = 1:2*n
+figure(i);
+plot(trajectory1(i,:));
+hold on;
+plot(trajectory2(i,:))
+plot(trajectory3(i,:));
+% plot(trajectory4(i,:));
+legend('ode','PMI','newton','sll');
+end
 %%
 clear all
 close all
